@@ -45,7 +45,7 @@ int GB::op_nop() { return 4; }
 // - - - -
 int GB::op_ld_bc_n16() {
     uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.setBC(n16);
+    this->registers.set_bc(n16);
     return 12;
 }
 
@@ -54,7 +54,7 @@ int GB::op_ld_bc_n16() {
 // 1 8
 // - - - -
 int GB::op_ld_bcm_a() {
-    this->memory.write_byte(this->registers.getBC(), this->registers.A);
+    this->memory.write_byte(this->registers.get_bc(), this->registers.A);
     return 8;
 }
 
@@ -63,7 +63,7 @@ int GB::op_ld_bcm_a() {
 // 1 8
 // - - - -
 int GB::op_inc_bc() {
-    this->registers.setBC(static_cast<uint16_t>(this->registers.getBC() + 1));
+    this->registers.set_bc(static_cast<uint16_t>(this->registers.get_bc() + 1));
     return 8;
 }
 
@@ -72,8 +72,15 @@ int GB::op_inc_bc() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_b() {
-    // TODO: implement INC B
-    return 0;
+    uint8_t prev_b = this->registers.B;
+    this->registers.B = static_cast<uint8_t>(prev_b + 1);
+
+    // Flags
+    this->registers.set_flag_z(this->registers.B == 0);
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h((prev_b & 0x0F) == 0x0F);
+
+    return 4;
 }
 
 // 0x05
@@ -81,8 +88,15 @@ int GB::op_inc_b() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_b() {
-    // TODO: implement DEC B
-    return 0;
+    uint8_t prev_b = this->registers.B;
+    this->registers.B = static_cast<uint8_t>(prev_b - 1);
+
+    // Flags
+    this->registers.set_flag_z(this->registers.B == 0);
+    this->registers.set_flag_n(true);
+    this->registers.set_flag_h((prev_b & 0x0F) == 0x00);
+
+    return 4;
 }
 
 // 0x06
@@ -128,7 +142,7 @@ int GB::op_add_hl_bc() {
 // 1 8
 // - - - -
 int GB::op_ld_a_bcm() {
-    this->registers.A = this->memory.read_byte(this->registers.getBC());
+    this->registers.A = this->memory.read_byte(this->registers.get_bc());
     return 8;
 }
 
@@ -137,7 +151,7 @@ int GB::op_ld_a_bcm() {
 // 1 8
 // - - - -
 int GB::op_dec_bc() {
-    this->registers.setBC(static_cast<uint16_t>(this->registers.getBC() - 1));
+    this->registers.set_bc(static_cast<uint16_t>(this->registers.get_bc() - 1));
     return 8;
 }
 
@@ -146,8 +160,15 @@ int GB::op_dec_bc() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_c() {
-    // TODO: implement INC C
-    return 0;
+    uint8_t prev_c = this->registers.C;
+    this->registers.C = static_cast<uint8_t>(prev_c + 1);
+
+    // Flags
+    this->registers.set_flag_z(this->registers.C == 0);
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h((prev_c & 0x0F) == 0x0F);
+
+    return 4;
 }
 
 // 0x0d
@@ -155,8 +176,15 @@ int GB::op_inc_c() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_c() {
-    // TODO: implement DEC C
-    return 0;
+    uint8_t prev_c = this->registers.C;
+    this->registers.C = static_cast<uint8_t>(prev_c - 1);
+
+    // Flags
+    this->registers.set_flag_z(this->registers.C == 0);
+    this->registers.set_flag_n(true);
+    this->registers.set_flag_h((prev_c & 0x0F) == 0x00);
+
+    return 4;
 }
 
 // 0x0e
@@ -193,7 +221,7 @@ int GB::op_stop_n8() {
 // - - - -
 int GB::op_ld_de_n16() {
     uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.setDE(n16);
+    this->registers.set_de(n16);
     return 12;
 }
 
@@ -202,7 +230,7 @@ int GB::op_ld_de_n16() {
 // 1 8
 // - - - -
 int GB::op_ld_dem_a() {
-    this->memory.write_byte(this->registers.getDE(), this->registers.A);
+    this->memory.write_byte(this->registers.get_de(), this->registers.A);
     return 8;
 }
 
@@ -211,7 +239,7 @@ int GB::op_ld_dem_a() {
 // 1 8
 // - - - -
 int GB::op_inc_de() {
-    this->registers.setDE(static_cast<uint16_t>(this->registers.getDE() + 1));
+    this->registers.set_de(static_cast<uint16_t>(this->registers.get_de() + 1));
     return 8;
 }
 
@@ -220,8 +248,15 @@ int GB::op_inc_de() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_d() {
-    // TODO: implement INC D
-    return 0;
+    uint8_t prev_d = this->registers.D;
+    this->registers.D = static_cast<uint8_t>(prev_d + 1);
+
+    // Flags
+    this->registers.set_flag_z(this->registers.D == 0);
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h((prev_d & 0x0F) == 0x0F);
+
+    return 4;
 }
 
 // 0x15
@@ -275,7 +310,7 @@ int GB::op_add_hl_de() {
 // 1 8
 // - - - -
 int GB::op_ld_a_dem() {
-    this->registers.A = this->memory.read_byte(this->registers.getDE());
+    this->registers.A = this->memory.read_byte(this->registers.get_de());
     return 8;
 }
 
@@ -284,7 +319,7 @@ int GB::op_ld_a_dem() {
 // 1 8
 // - - - -
 int GB::op_dec_de() {
-    this->registers.setDE(static_cast<uint16_t>(this->registers.getDE() - 1));
+    this->registers.set_de(static_cast<uint16_t>(this->registers.get_de() - 1));
     return 8;
 }
 
@@ -340,7 +375,7 @@ int GB::op_jr_nz_e8() {
 // - - - -
 int GB::op_ld_hl_a16() {
     uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.setHL(n16);
+    this->registers.set_hl(n16);
     return 12;
 }
 
@@ -349,8 +384,8 @@ int GB::op_ld_hl_a16() {
 // 1 8
 // - - - -
 int GB::op_ld_hlim_a() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.A);
-    this->registers.setHL(static_cast<uint16_t>(this->registers.getHL() + 1));
+    this->memory.write_byte(this->registers.get_hl(), this->registers.A);
+    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
     return 8;
 }
 
@@ -359,7 +394,7 @@ int GB::op_ld_hlim_a() {
 // 1 8
 // - - - -
 int GB::op_inc_hl() {
-    this->registers.setHL(static_cast<uint16_t>(this->registers.getHL() + 1));
+    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
     return 8;
 }
 
@@ -423,8 +458,8 @@ int GB::op_add_hl_hl() {
 // 1 8
 // - - - -
 int GB::op_ld_a_hlim() {
-    this->registers.A = this->memory.read_byte(this->registers.getHL());
-    this->registers.setHL(static_cast<uint16_t>(this->registers.getHL() + 1));
+    this->registers.A = this->memory.read_byte(this->registers.get_hl());
+    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
     return 8;
 }
 
@@ -433,7 +468,7 @@ int GB::op_ld_a_hlim() {
 // 1 8
 // - - - -
 int GB::op_dec_hl() {
-    this->registers.setHL(static_cast<uint16_t>(this->registers.getHL() - 1));
+    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
     return 8;
 }
 
@@ -498,8 +533,8 @@ int GB::op_ld_sp_a16() {
 // 1 8
 // - - - -
 int GB::op_ld_hldm_a() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.A);
-    this->registers.setHL(static_cast<uint16_t>(this->registers.getHL() - 1));
+    this->memory.write_byte(this->registers.get_hl(), this->registers.A);
+    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
     return 8;
 }
 
@@ -536,7 +571,7 @@ int GB::op_dec_hlm() {
 // - - - -
 int GB::op_ld_hlm_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->memory.write_byte(this->registers.getHL(), n8);
+    this->memory.write_byte(this->registers.get_hl(), n8);
     return 12;
 }
 
@@ -572,8 +607,8 @@ int GB::op_add_hl_sp() {
 // 1 8
 // - - - -
 int GB::op_ld_a_hldm() {
-    this->registers.A = this->memory.read_byte(this->registers.getHL());
-    this->registers.setHL(static_cast<uint16_t>(this->registers.getHL() - 1));
+    this->registers.A = this->memory.read_byte(this->registers.get_hl());
+    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
     return 8;
 }
 
@@ -682,7 +717,7 @@ int GB::op_ld_b_l() {
 // 1 8
 // - - - -
 int GB::op_ld_b_hlm() {
-    this->registers.B = this->memory.read_byte(this->registers.getHL());
+    this->registers.B = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
 
@@ -754,7 +789,7 @@ int GB::op_ld_c_l() {
 // 1 8
 // - - - -
 int GB::op_ld_c_hlm() {
-    this->registers.C = this->memory.read_byte(this->registers.getHL());
+    this->registers.C = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
 
@@ -826,7 +861,7 @@ int GB::op_ld_d_l() {
 // 1 8
 // - - - -
 int GB::op_ld_d_hlm() {
-    this->registers.D = this->memory.read_byte(this->registers.getHL());
+    this->registers.D = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
 
@@ -898,7 +933,7 @@ int GB::op_ld_e_l() {
 // 1 8
 // - - - -
 int GB::op_ld_e_hlm() {
-    this->registers.E = this->memory.read_byte(this->registers.getHL());
+    this->registers.E = this->memory.read_byte(this->registers.get_hl());
     return 4;
 }
 
@@ -970,7 +1005,7 @@ int GB::op_ld_h_l() {
 // 1 8
 // - - - -
 int GB::op_ld_h_hlm() {
-    this->registers.H = this->memory.read_byte(this->registers.getHL());
+    this->registers.H = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
 
@@ -1042,7 +1077,7 @@ int GB::op_ld_l_l() {
 // 1 8
 // - - - -
 int GB::op_ld_l_hlm() {
-    this->registers.L = this->memory.read_byte(this->registers.getHL());
+    this->registers.L = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
 
@@ -1060,7 +1095,7 @@ int GB::op_ld_l_a() {
 // 1 8
 // - - - -
 int GB::op_ld_hlm_b() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.B);
+    this->memory.write_byte(this->registers.get_hl(), this->registers.B);
     return 8;
 }
 
@@ -1069,7 +1104,7 @@ int GB::op_ld_hlm_b() {
 // 1 8
 // - - - -
 int GB::op_ld_hlm_c() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.C);
+    this->memory.write_byte(this->registers.get_hl(), this->registers.C);
     return 8;
 }
 
@@ -1078,7 +1113,7 @@ int GB::op_ld_hlm_c() {
 // 1 8
 // - - - -
 int GB::op_ld_hlm_d() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.D);
+    this->memory.write_byte(this->registers.get_hl(), this->registers.D);
     return 8;
 }
 
@@ -1087,7 +1122,7 @@ int GB::op_ld_hlm_d() {
 // 1 8
 // - - - -
 int GB::op_ld_hlm_e() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.E);
+    this->memory.write_byte(this->registers.get_hl(), this->registers.E);
     return 8;
 }
 
@@ -1096,7 +1131,7 @@ int GB::op_ld_hlm_e() {
 // 1 8
 // - - - -
 int GB::op_ld_hlm_h() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.H);
+    this->memory.write_byte(this->registers.get_hl(), this->registers.H);
     return 8;
 }
 
@@ -1105,7 +1140,7 @@ int GB::op_ld_hlm_h() {
 // 1 8
 // - - - -
 int GB::op_ld_hlm_l() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.L);
+    this->memory.write_byte(this->registers.get_hl(), this->registers.L);
     return 8;
 }
 
@@ -1123,7 +1158,7 @@ int GB::op_halt() {
 // 1 8
 // - - - -
 int GB::op_ld_hlm_a() {
-    this->memory.write_byte(this->registers.getHL(), this->registers.A);
+    this->memory.write_byte(this->registers.get_hl(), this->registers.A);
     return 8;
 }
 
@@ -1186,7 +1221,7 @@ int GB::op_ld_a_l() {
 // 1 8
 // - - - -
 int GB::op_ld_a_hlm() {
-    this->registers.A = this->memory.read_byte(this->registers.getHL());
+    this->registers.A = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
 
@@ -1753,7 +1788,16 @@ int GB::op_cp_a_h() {
 // 1 4
 // Z 1 H C
 int GB::op_cp_a_l() {
-    // TODO: implement CP A, L
+    uint8_t a = this->registers.A;
+    uint8_t r8 = this->registers.L;
+    uint8_t result = a - r8;
+
+    // Flags
+    this->registers.set_flag_z(result == 0);
+    this->registers.set_flag_n(true);
+    this->registers.set_flag_h((a & 0x0F) < (r8 & 0x0F));
+    this->registers.set_flag_c(r8 > a);
+
     return 0;
 }
 
@@ -1789,9 +1833,8 @@ int GB::op_ret_nz() {
 // 1 12
 // - - - -
 int GB::op_pop_bc() {
-    uint16_t word = this->memory.read_word(this->registers.SP);
-    this->registers.setBC(word);
-    this->registers.SP += 2;
+    uint16_t word = this->stack.pop_word();
+    this->registers.set_bc(word);
     return 12;
 }
 
@@ -1828,8 +1871,7 @@ int GB::op_call_nz_a16() {
 // 1 16
 // - - - -
 int GB::op_push_bc() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, this->registers.getBC());
+    this->stack.push_word(this->registers.get_bc());
     return 16;
 }
 
@@ -1847,8 +1889,7 @@ int GB::op_add_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_00() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0000;
     return 16;
 }
@@ -1867,9 +1908,8 @@ int GB::op_ret_z() {
 // 1 10
 // - - - -
 int GB::op_ret() {
-    uint16_t address = this->memory.read_word(this->registers.SP);
+    uint16_t address = this->stack.pop_word();
     this->registers.PC = address;
-    this->registers.SP += 2;
     return 10;
 }
 
@@ -1906,9 +1946,10 @@ int GB::op_call_z_a16() {
 // - - - -
 int GB::op_call_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP,
-                            static_cast<uint16_t>(this->registers.PC + 3)); // skip call opcode + address
+
+    uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
+    this->stack.push_word(return_address);
+
     this->registers.PC = address;
     return 24;
 }
@@ -1927,8 +1968,7 @@ int GB::op_adc_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_08() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0008;
     return 16;
 }
@@ -1947,9 +1987,8 @@ int GB::op_ret_nc() {
 // 1 12
 // - - - -
 int GB::op_pop_de() {
-    uint16_t word = this->memory.read_word(this->registers.SP);
-    this->registers.setDE(word);
-    this->registers.SP += 2;
+    uint16_t word = this->stack.pop_word();
+    this->registers.set_de(word);
     return 12;
 }
 
@@ -1984,8 +2023,7 @@ int GB::op_call_nc_a16() {
 // 1 16
 // - - - -
 int GB::op_push_de() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, this->registers.getDE());
+    this->stack.push_word(this->registers.get_de());
     return 16;
 }
 
@@ -2003,8 +2041,7 @@ int GB::op_sub_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_10() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0010;
     return 16;
 }
@@ -2075,8 +2112,7 @@ int GB::op_sbc_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_18() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0018;
     return 16;
 }
@@ -2097,8 +2133,8 @@ int GB::op_ldh_a8m_a() {
 // 1 12
 // - - - -
 int GB::op_pop_hl() {
-    this->registers.setHL(this->memory.read_word(this->registers.SP));
-    this->registers.SP += 2;
+    uint8_t word = this->stack.pop_word();
+    this->registers.set_hl(word);
     return 12;
 }
 
@@ -2134,8 +2170,7 @@ int GB::op_ldh_cm_a() {
 // 1 16
 // - - - -
 int GB::op_push_hl() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, this->registers.getHL());
+    this->stack.push_word(this->registers.get_hl());
     return 16;
 }
 
@@ -2153,8 +2188,7 @@ int GB::op_and_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_20() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0020;
     return 16;
 }
@@ -2173,7 +2207,7 @@ int GB::op_add_sp_e8() {
 // 1 4
 // - - - -
 int GB::op_jp_hl() {
-    this->registers.PC = this->registers.getHL();
+    this->registers.PC = this->registers.get_hl();
     return 4;
 }
 
@@ -2224,8 +2258,7 @@ int GB::op_xor_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_28() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0028;
     return 16;
 }
@@ -2246,9 +2279,8 @@ int GB::op_ldh_a_a8m() {
 // 1 12
 // Z N H C
 int GB::op_pop_af() {
-    uint16_t word = this->memory.read_word(this->registers.SP);
-    this->registers.setAF(word);
-    this->registers.SP += 2;
+    uint16_t word = this->stack.pop_word();
+    this->registers.set_af(word);
     return 12;
 }
 
@@ -2285,8 +2317,7 @@ int GB::op_di() {
 // 1 16
 // - - - -
 int GB::op_push_af() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, this->registers.getAF());
+    this->stack.push_word(this->registers.get_af());
     return 16;
 }
 
@@ -2304,8 +2335,7 @@ int GB::op_or_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_30() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0030;
     return 16;
 }
@@ -2324,7 +2354,7 @@ int GB::op_ld_hl_sp_e8() {
 // 1 8
 // - - - -
 int GB::op_ld_sp_hl() {
-    this->registers.SP = this->registers.getHL();
+    this->registers.SP = this->registers.get_hl();
     return 8;
 }
 
@@ -2376,8 +2406,7 @@ int GB::op_cp_a_n8() {
 // 1 16
 // - - - -
 int GB::op_rst_38() {
-    this->registers.SP -= 2;
-    this->memory.write_word(this->registers.SP, static_cast<uint16_t>(this->registers.PC + 1));
+    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0038;
     return 16;
 }
@@ -2662,7 +2691,7 @@ void GB::init() {
     // 0xF0 - 0xFF
     set(0xF0, &GB::op_ldh_a_a8m,    "LDH A, [a8]",  2);
     set(0xF1, &GB::op_pop_af,       "POP AF",       1);
-    set(0xF2, &GB::op_ldh_a_cm,      "LDH A, [C]",    1);
+    set(0xF2, &GB::op_ldh_a_cm,      "LDH A, [C]",  1);
     set(0xF3, &GB::op_di,           "DI",           1);
     // set(0xF4, &GB::op_unused_f4,    "ILLEGAL (0xF4)", 1);
     set(0xF5, &GB::op_push_af,      "PUSH AF",      1);

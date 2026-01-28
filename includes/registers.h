@@ -5,6 +5,11 @@
 #include <cstddef>
 #include <stdint.h>
 
+static constexpr uint8_t FLAG_Z_MASK = 0x80;
+static constexpr uint8_t FLAG_N_MASK = 0x40;
+static constexpr uint8_t FLAG_H_MASK = 0x20;
+static constexpr uint8_t FLAG_C_MASK = 0x10;
+
 class Registers {
   public:
     Registers(uint8_t initial_value = 0);
@@ -21,17 +26,29 @@ class Registers {
     uint16_t SP;
     uint16_t PC;
 
-    void setAF(uint16_t value);
-    uint16_t getAF();
+    void set_af(uint16_t value);
+    uint16_t get_af();
 
-    void setBC(uint16_t value);
-    uint16_t getBC();
+    void set_bc(uint16_t value);
+    uint16_t get_bc();
 
-    void setDE(uint16_t value);
-    uint16_t getDE();
+    void set_de(uint16_t value);
+    uint16_t get_de();
 
-    void setHL(uint16_t value);
-    uint16_t getHL();
+    void set_hl(uint16_t value);
+    uint16_t get_hl();
+
+    void set_flag_z(bool value);
+    bool get_flag_z();
+
+    void set_flag_n(bool value);
+    bool get_flag_n();
+
+    void set_flag_h(bool value);
+    bool get_flag_h();
+
+    void set_flag_c(bool value);
+    bool get_flag_c();
 };
 
 #endif
