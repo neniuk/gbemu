@@ -1808,8 +1808,12 @@ int GB::op_cp_a_a() {
 // 1 20/8
 // - - - -
 int GB::op_ret_nz() {
-    // TODO: implement RET NZ
-    return 0;
+    if (!this->registers.get_flag_z()) {
+        uint16_t address = this->stack.pop_word();
+        this->registers.PC = address;
+        return 20;
+    }
+    return 8;
 }
 
 // 0xc1
@@ -1880,21 +1884,25 @@ int GB::op_rst_00() {
 
 // 0xc8
 // RET Z
-// 1 11/5
+// 1 20/8
 // - - - -
 int GB::op_ret_z() {
-    // TODO: implement RET Z
-    return 0;
+    if (this->registers.get_flag_z()) {
+        uint16_t address = this->stack.pop_word();
+        this->registers.PC = address;
+        return 20;
+    }
+    return 8;
 }
 
 // 0xc9
 // RET
-// 1 10
+// 1 16
 // - - - -
 int GB::op_ret() {
     uint16_t address = this->stack.pop_word();
     this->registers.PC = address;
-    return 10;
+    return 16;
 }
 
 // 0xca
@@ -1962,8 +1970,12 @@ int GB::op_rst_08() {
 // 1 20/8
 // - - - -
 int GB::op_ret_nc() {
-    // TODO: implement RET NC
-    return 0;
+    if (!this->registers.get_flag_c()) {
+        uint16_t address = this->stack.pop_word();
+        this->registers.PC = address;
+        return 20;
+    }
+    return 8;
 }
 
 // 0xd1
@@ -2035,8 +2047,12 @@ int GB::op_rst_10() {
 // 1 20/8
 // - - - -
 int GB::op_ret_c() {
-    // TODO: implement RET C
-    return 0;
+    if (this->registers.get_flag_c()) {
+        uint16_t address = this->stack.pop_word();
+        this->registers.PC = address;
+        return 20;
+    }
+    return 8;
 }
 
 // 0xd9
