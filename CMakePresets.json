@@ -1,0 +1,32 @@
+{
+	"version": 6,
+	"cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 0 },
+	"configurePresets": [
+		{
+			"name": "linux-vcpkg-debug",
+			"displayName": "Debug (vcpkg)",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/linux-vcpkg-debug",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+				"VCPKG_TARGET_TRIPLET": "x64-linux"
+			}
+		},
+		{
+			"name": "linux-vcpkg-release",
+			"displayName": "Release (vcpkg)",
+			"inherits": "linux-vcpkg-debug",
+			"binaryDir": "${sourceDir}/build/linux-vcpkg-release",
+			"cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+		}
+	],
+	"buildPresets": [
+		{ "name": "linux-vcpkg-debug", "configurePreset": "linux-vcpkg-debug" },
+		{
+			"name": "linux-vcpkg-release",
+			"configurePreset": "linux-vcpkg-release"
+		}
+	]
+}
