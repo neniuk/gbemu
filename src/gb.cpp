@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <vector>
 
+// TODO: CALL, JP, RET, RST etc. where PC is set directly, should not increment PC after opcode execution
+
 GB::GB() : stack(&registers.SP, &memory) {
     // clang-format off
     // Write startup logo to memory
