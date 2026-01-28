@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-GB::GB() : stack(&registers.SP) {
+GB::GB() : stack(&registers.SP, &memory) {
     // clang-format off
     // Write startup logo to memory
     std::vector<uint8_t> logo = {
