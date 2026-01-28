@@ -35,6 +35,13 @@ int GB::op_unimplemented() {
 
 // opcode implementations =====================
 
+// Opcode
+// Mnemonic
+// Length in bytes (pc increment) & Duration in T-states (cycleCount increment)
+// Flags affected (Z, N, H, C) - Zero, Subtract, Half-carry, Carry
+
+// Return time taken to complete in T-states
+
 // 0x00
 // NOP
 // 1 4
