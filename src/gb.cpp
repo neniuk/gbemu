@@ -10,7 +10,7 @@
 
 // TODO: CALL, JP, RET, RST etc. where PC is set directly, should not increment PC after opcode execution
 
-GB::GB() : stack(&registers.SP, &memory) {
+GB::GB() : stack(&registers.SP, &memory), idu(&registers, &memory) {
     // clang-format off
     // Write startup logo to memory
     std::vector<uint8_t> logo = {
@@ -74,14 +74,7 @@ int GB::op_inc_bc() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_b() {
-    uint8_t prev_b = this->registers.B;
-    this->registers.B = static_cast<uint8_t>(prev_b + 1);
-
-    // Flags
-    this->registers.set_flag_z(this->registers.B == 0);
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h((prev_b & 0x0F) == 0x0F);
-
+    this->idu.increment_r8(this->registers.B);
     return 4;
 }
 
@@ -90,14 +83,7 @@ int GB::op_inc_b() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_b() {
-    uint8_t prev_b = this->registers.B;
-    this->registers.B = static_cast<uint8_t>(prev_b - 1);
-
-    // Flags
-    this->registers.set_flag_z(this->registers.B == 0);
-    this->registers.set_flag_n(true);
-    this->registers.set_flag_h((prev_b & 0x0F) == 0x00);
-
+    this->idu.decrement_r8(this->registers.B);
     return 4;
 }
 
@@ -162,14 +148,7 @@ int GB::op_dec_bc() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_c() {
-    uint8_t prev_c = this->registers.C;
-    this->registers.C = static_cast<uint8_t>(prev_c + 1);
-
-    // Flags
-    this->registers.set_flag_z(this->registers.C == 0);
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h((prev_c & 0x0F) == 0x0F);
-
+    this->idu.increment_r8(this->registers.C);
     return 4;
 }
 
@@ -178,14 +157,7 @@ int GB::op_inc_c() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_c() {
-    uint8_t prev_c = this->registers.C;
-    this->registers.C = static_cast<uint8_t>(prev_c - 1);
-
-    // Flags
-    this->registers.set_flag_z(this->registers.C == 0);
-    this->registers.set_flag_n(true);
-    this->registers.set_flag_h((prev_c & 0x0F) == 0x00);
-
+    this->idu.decrement_r8(this->registers.C);
     return 4;
 }
 
@@ -250,14 +222,7 @@ int GB::op_inc_de() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_d() {
-    uint8_t prev_d = this->registers.D;
-    this->registers.D = static_cast<uint8_t>(prev_d + 1);
-
-    // Flags
-    this->registers.set_flag_z(this->registers.D == 0);
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h((prev_d & 0x0F) == 0x0F);
-
+    this->idu.increment_r8(this->registers.D);
     return 4;
 }
 
@@ -266,8 +231,8 @@ int GB::op_inc_d() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_d() {
-    // TODO: implement DEC D
-    return 0;
+    this->idu.decrement_r8(this->registers.D);
+    return 4;
 }
 
 // 0x16
@@ -294,7 +259,8 @@ int GB::op_rla() {
 // 2 12
 // - - - -
 int GB::op_jr_e8() {
-    this->registers.PC += static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+    int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+    this->registers.PC += offset;
     return 12;
 }
 
@@ -330,8 +296,8 @@ int GB::op_dec_de() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_e() {
-    // TODO: implement INC E
-    return 0;
+    this->idu.increment_r8(this->registers.E);
+    return 4;
 }
 
 // 0x1d
@@ -339,8 +305,8 @@ int GB::op_inc_e() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_e() {
-    // TODO: implement DEC E
-    return 0;
+    this->idu.decrement_r8(this->registers.E);
+    return 4;
 }
 
 // 0x1e
@@ -367,8 +333,12 @@ int GB::op_rra() {
 // 2 12/8
 // - - - -
 int GB::op_jr_nz_e8() {
-    // TODO: implement JR NZ, e8
-    return 0;
+    if (!this->registers.get_flag_z()) {
+        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+        this->registers.PC += offset;
+        return 12;
+    }
+    return 8;
 }
 
 // 0x21
@@ -405,8 +375,8 @@ int GB::op_inc_hl() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_h() {
-    // TODO: implement INC H
-    return 0;
+    this->idu.increment_r8(this->registers.H);
+    return 4;
 }
 
 // 0x25
@@ -414,8 +384,8 @@ int GB::op_inc_h() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_h() {
-    // TODO: implement DEC H
-    return 0;
+    this->idu.decrement_r8(this->registers.H);
+    return 4;
 }
 
 // 0x26
@@ -442,8 +412,12 @@ int GB::op_daa() {
 // 2 12/8
 // - - - -
 int GB::op_jr_z_e8() {
-    // TODO: implement JR Z, e8
-    return 0;
+    if (this->registers.get_flag_z()) {
+        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+        this->registers.PC += offset;
+        return 12;
+    }
+    return 8;
 }
 
 // 0x29
@@ -479,8 +453,8 @@ int GB::op_dec_hl() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_l() {
-    // TODO: implement INC L
-    return 0;
+    this->idu.increment_r8(this->registers.L);
+    return 4;
 }
 
 // 0x2d
@@ -488,8 +462,8 @@ int GB::op_inc_l() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_l() {
-    // TODO: implement DEC L
-    return 0;
+    this->idu.decrement_r8(this->registers.L);
+    return 4;
 }
 
 // 0x2e
@@ -516,8 +490,12 @@ int GB::op_cpl() {
 // 2 12/8
 // - - - -
 int GB::op_jr_nc_e8() {
-    // TODO: implement JR NC, e8
-    return 0;
+    if (!this->registers.get_flag_c()) {
+        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+        this->registers.PC += offset;
+        return 12;
+    }
+    return 8;
 }
 
 // 0x31
@@ -554,8 +532,8 @@ int GB::op_inc_sp() {
 // 1 12
 // Z 0 H -
 int GB::op_inc_hlm() {
-    // TODO: implement INC [HL]
-    return 0;
+    this->idu.increment_mem8(this->registers.get_hl());
+    return 12;
 }
 
 // 0x35
@@ -563,8 +541,8 @@ int GB::op_inc_hlm() {
 // 1 12
 // Z 1 H -
 int GB::op_dec_hlm() {
-    // TODO: implement DEC [HL]
-    return 0;
+    this->idu.decrement_mem8(this->registers.get_hl());
+    return 12;
 }
 
 // 0x36
@@ -591,8 +569,12 @@ int GB::op_scf() {
 // 2 12/8
 // - - - -
 int GB::op_jr_c_e8() {
-    // TODO: implement JR C, e8
-    return 0;
+    if (this->registers.get_flag_c()) {
+        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+        this->registers.PC += offset;
+        return 12;
+    }
+    return 8;
 }
 
 // 0x39
@@ -628,8 +610,8 @@ int GB::op_dec_sp() {
 // 1 4
 // Z 0 H -
 int GB::op_inc_a() {
-    // TODO: implement INC A
-    return 0;
+    this->idu.increment_r8(this->registers.A);
+    return 4;
 }
 
 // 0x3d
@@ -637,8 +619,8 @@ int GB::op_inc_a() {
 // 1 4
 // Z 1 H -
 int GB::op_dec_a() {
-    // TODO: implement DEC A
-    return 0;
+    this->idu.decrement_r8(this->registers.A);
+    return 4;
 }
 
 // 0x3e

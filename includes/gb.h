@@ -2,6 +2,7 @@
 #define GB_H
 
 #include "config.h"
+#include "idu.h"
 #include "memory.h"
 #include "registers.h"
 #include "screen.h"
@@ -19,6 +20,7 @@ class GB {
     Registers registers;
     Stack stack;
     Screen screen;
+    IDU idu;
 
     void load(const std::vector<uint8_t> &buf);
 
