@@ -573,8 +573,10 @@ int GB::op_ld_hlm_n8() {
 // 1 4
 // - 0 0 1
 int GB::op_scf() {
-    // TODO: implement SCF
-    return 0;
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h(false);
+    this->registers.set_flag_c(true);
+    return 4;
 }
 
 // 0x38
@@ -1847,8 +1849,12 @@ int GB::op_pop_bc() {
 // 3 16/12
 // - - - -
 int GB::op_jp_nz_a16() {
-    // TODO: implement JP NZ, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    if (!this->registers.get_flag_z()) {
+        this->registers.PC = address;
+        return 16;
+    }
+    return 12;
 }
 
 // 0xc3
@@ -1866,8 +1872,16 @@ int GB::op_jp_a16() {
 // 3 24/12
 // - - - -
 int GB::op_call_nz_a16() {
-    // TODO: implement CALL NZ, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+
+    if (!this->registers.get_flag_z()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
+        this->stack.push_word(return_address);
+
+        this->registers.PC = address;
+        return 24;
+    }
+    return 12;
 }
 
 // 0xc5
@@ -1927,8 +1941,12 @@ int GB::op_ret() {
 // 3 16/12
 // - - - -
 int GB::op_jp_z_a16() {
-    // TODO: implement JP Z, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    if (this->registers.get_flag_z()) {
+        this->registers.PC = address;
+        return 16;
+    }
+    return 12;
 }
 
 // 0xcb
@@ -1945,8 +1963,16 @@ int GB::op_prefix() {
 // 3 24/12
 // - - - -
 int GB::op_call_z_a16() {
-    // TODO: implement CALL Z, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+
+    if (this->registers.get_flag_z()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
+        this->stack.push_word(return_address);
+
+        this->registers.PC = address;
+        return 24;
+    }
+    return 12;
 }
 
 // 0xcd
@@ -2011,8 +2037,12 @@ int GB::op_pop_de() {
 // 3 16/12
 // - - - -
 int GB::op_jp_nc_a16() {
-    // TODO: implement JP NC, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    if (!this->registers.get_flag_c()) {
+        this->registers.PC = address;
+        return 16;
+    }
+    return 12;
 }
 
 // 0xd3
@@ -2028,8 +2058,16 @@ int GB::op_jp_nc_a16() {
 // 3 24/12
 // - - - -
 int GB::op_call_nc_a16() {
-    // TODO: implement CALL NC, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+
+    if (!this->registers.get_flag_c()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
+        this->stack.push_word(return_address);
+
+        this->registers.PC = address;
+        return 24;
+    }
+    return 12;
 }
 
 // 0xd5
@@ -2088,8 +2126,12 @@ int GB::op_reti() {
 // 3 16/12
 // - - - -
 int GB::op_jp_c_a16() {
-    // TODO: implement JP C, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    if (this->registers.get_flag_c()) {
+        this->registers.PC = address;
+        return 16;
+    }
+    return 12;
 }
 
 // 0xdb
@@ -2105,8 +2147,16 @@ int GB::op_jp_c_a16() {
 // 3 24/12
 // - - - -
 int GB::op_call_c_a16() {
-    // TODO: implement CALL C, a16
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+
+    if (this->registers.get_flag_c()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
+        this->stack.push_word(return_address);
+
+        this->registers.PC = address;
+        return 24;
+    }
+    return 12;
 }
 
 // 0xdd
@@ -2398,8 +2448,10 @@ int GB::op_ld_sp_hl() {
 // 3 16
 // - - - -
 int GB::op_ld_a_a16m() {
-    // TODO: implement LD A, [a16]
-    return 0;
+    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    uint8_t value = this->memory.read_byte(address);
+    this->registers.A = value;
+    return 16;
 }
 
 // 0xfb
@@ -2453,6 +2505,7 @@ void GB::init() {
 
     auto set = [&](uint8_t opcode, OpFn fn, const char *name, uint8_t length) { this->ops[opcode] = {fn, name, length}; };
 
+    // Set up opcode table
     // clang-format off
     // 0x00 - 0x0F
     set(0x00, &GB::op_nop,          "NOP",          1);
@@ -2742,4 +2795,6 @@ void GB::init() {
     set(0xFE, &GB::op_cp_a_n8,      "CP A, n8",     2);
     set(0xFF, &GB::op_rst_38,       "RST $38",      1);
     // clang-format on
+
+    // Set up CB prefix opcode table
 }
