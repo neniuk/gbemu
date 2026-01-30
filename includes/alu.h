@@ -15,6 +15,8 @@ class ALU {
     void add_u8(uint8_t val);
     void adc_u8(uint8_t val);
 
+    void add_u16(uint16_t val);
+
     void sub_u8(uint8_t val);
     void sbc_u8(uint8_t val);
 

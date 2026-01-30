@@ -16,7 +16,7 @@
 
 // TODO: CALL, JP, RET, RST etc. where PC is set directly, should not increment PC after opcode execution
 
-GB::GB() : stack(&registers.SP, &memory), idu(&registers, &memory) {
+GB::GB() : stack(&registers.SP, &memory), idu(&registers, &memory), alu(&registers, &memory) {
     // clang-format off
     // Write startup logo to memory
     std::vector<uint8_t> logo = {
@@ -134,8 +134,8 @@ int GB::op_ld_a16m_sp() {
 // 1 8
 // - 0 H C
 int GB::op_add_hl_bc() {
-    // TODO: implement ADD HL, BC
-    return 0;
+    this->alu.add_u16(this->registers.get_bc());
+    return 8;
 }
 
 // 0x0a
@@ -282,8 +282,8 @@ int GB::op_jr_e8() {
 // 1 8
 // - 0 H C
 int GB::op_add_hl_de() {
-    // TODO: implement ADD HL, DE
-    return 0;
+    this->alu.add_u16(this->registers.get_de());
+    return 8;
 }
 
 // 0x1a
@@ -438,8 +438,8 @@ int GB::op_jr_z_e8() {
 // 1 8
 // - 0 H C
 int GB::op_add_hl_hl() {
-    // TODO: implement ADD HL, HL
-    return 0;
+    this->alu.add_u16(this->registers.get_hl());
+    return 8;
 }
 
 // 0x2a
@@ -595,8 +595,8 @@ int GB::op_jr_c_e8() {
 // 1 8
 // - 0 H C
 int GB::op_add_hl_sp() {
-    // TODO: implement ADD HL, SP
-    return 0;
+    this->alu.add_u16(this->registers.SP);
+    return 8;
 }
 
 // 0x3a
@@ -2219,8 +2219,20 @@ int GB::op_rst_20() {
 // 2 16
 // 0 0 H C
 int GB::op_add_sp_e8() {
-    // TODO: implement ADD SP, e8
-    return 0;
+    int8_t value = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+    uint16_t sp = this->registers.SP;
+    uint16_t result = static_cast<uint16_t>(static_cast<int32_t>(sp) + static_cast<int32_t>(value));
+    this->registers.SP = result;
+
+    uint8_t value_u = static_cast<uint8_t>(value);
+
+    // Flags
+    this->registers.set_flag_z(false);
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h(((sp & 0x0F) + (value_u & 0x0F)) > 0x0F);
+    this->registers.set_flag_c((static_cast<uint16_t>(sp & 0xFF) + value_u) > 0xFF);
+
+    return 16;
 }
 
 // 0xe9

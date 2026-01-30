@@ -26,6 +26,17 @@ void ALU::adc_u8(uint8_t val) {
     this->registers->set_flag_c(static_cast<uint16_t>(a) + static_cast<uint16_t>(val) + static_cast<uint16_t>(c) > 0xFF);
 }
 
+void ALU::add_u16(uint16_t val) {
+    uint16_t hl = this->registers->get_hl();
+    uint16_t result = static_cast<uint16_t>(hl + val);
+    this->registers->set_hl(result);
+
+    // Flags - 0 H C
+    this->registers->set_flag_n(false);
+    this->registers->set_flag_h(((hl & 0x0FFF) + (val & 0x0FFF)) > 0x0FFF);
+    this->registers->set_flag_c(static_cast<uint32_t>(hl) + static_cast<uint32_t>(val) > 0xFFFF);
+}
+
 void ALU::sub_u8(uint8_t val) {
     uint8_t a = this->registers->A;
     this->registers->A = static_cast<uint8_t>(a - val);
