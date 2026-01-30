@@ -3123,6 +3123,4 @@ void GB::init() {
     set(0xFE, &GB::op_cp_a_n8,      "CP A, n8");
     set(0xFF, &GB::op_rst_38,       "RST $38");
     // clang-format on
-
-    // Set up CB prefix opcode table
 }
