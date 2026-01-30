@@ -115,8 +115,8 @@ int GB::op_ld_b_n8() {
 // 1 4
 // 0 0 0 C
 int GB::op_rlca() {
-    // TODO: implement RLCA
-    return 0;
+    this->bmi.rlca();
+    return 4;
 }
 
 // 0x08
@@ -189,14 +189,7 @@ int GB::op_ld_c_n8() {
 // 1 4
 // 0 0 0 C
 int GB::op_rrca() {
-    uint8_t old_a_in = this->registers.A & 0x01;
-    this->registers.A = static_cast<uint8_t>((this->registers.A >> 1) | (old_a_in << 7));
-
-    this->registers.set_flag_z(false);
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h(false);
-    this->registers.set_flag_c(old_a_in != 0);
-
+    this->bmi.rrca();
     return 4;
 }
 
@@ -352,8 +345,8 @@ int GB::op_ld_e_n8() {
 // 1 4
 // 0 0 0 C
 int GB::op_rra() {
-    // TODO: implement RRA
-    return 0;
+    this->bmi.rra();
+    return 4;
 }
 
 // 0x20
@@ -668,8 +661,10 @@ int GB::op_ld_a_n8() {
 // 1 4
 // - 0 0 C
 int GB::op_ccf() {
-    // TODO: implement CCF
-    return 0;
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h(false);
+    this->registers.set_flag_c(!this->registers.get_flag_c());
+    return 4;
 }
 
 // 0x40
@@ -1969,8 +1964,10 @@ int GB::op_jp_z_a16() {
 // 1 4
 // - - - -
 int GB::op_prefix() {
-    // TODO: implement PREFIX (CB-prefixed dispatch)
-    return 0;
+    uint8_t cb = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    auto &entry = this->cb_ops[cb];
+    // call member function pointer
+    return (this->*entry.fn)();
 }
 
 // 0xcc

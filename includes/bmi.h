@@ -14,13 +14,17 @@ class BMI {
 
     void rla();
     void rlca();
-    void rl_r8(uint8_t &reg);
-    void rlc_r8(uint8_t &reg);
+    void rl_u8(uint8_t &reg);
+    void rl_u8(uint16_t address);
+    void rlc_u8(uint8_t &reg);
+    void rlc_u8(uint16_t address);
 
     void rra();
     void rrca();
-    void rr_r8(uint8_t &reg);
-    void rrc_r8(uint8_t &reg);
+    void rr_u8(uint8_t &reg);
+    void rr_u8(uint16_t address);
+    void rrc_u8(uint8_t &reg);
+    void rrc_u8(uint16_t address);
 
     void sla_u8(uint8_t &reg);
     void sla_u8(uint16_t address);
