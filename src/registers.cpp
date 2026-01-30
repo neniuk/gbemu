@@ -16,6 +16,7 @@ Registers::Registers(uint8_t initial_value) {
     this->L = initial_value;
     this->SP = static_cast<uint16_t>(initial_value);
     this->PC = GB_PROGRAM_COUNTER_START;
+    this->IME = false;
 }
 
 void Registers::set_af(uint16_t value) {

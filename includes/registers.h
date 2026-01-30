@@ -26,6 +26,8 @@ class Registers {
     uint16_t SP;
     uint16_t PC;
 
+    bool IME;
+
     void set_af(uint16_t value);
     uint16_t get_af();
 

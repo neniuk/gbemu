@@ -29,16 +29,14 @@ class GB {
     uint64_t tstates = 0;
     bool stopped = false;
     bool halted = false;
-    bool ime = false;
 
     void load(const std::vector<uint8_t> &buf);
 
-    using OpFn = int (GB::*)();
+    using OpFn = void (GB::*)();
 
     struct OpInfo {
         OpFn fn;
         const char *name;
-        uint8_t length;
     };
 
     std::array<OpInfo, 256> ops{};
