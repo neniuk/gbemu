@@ -234,7 +234,7 @@ void BMI::swap_u8(uint16_t address) {
     this->registers->set_flag_c(false);
 }
 
-void BMI::bit_u8(uint8_t bit, uint8_t reg) {
+void BMI::bit_u8(uint8_t bit, uint8_t &reg) {
     bool bit_set = (reg & (1 << bit)) != 0;
 
     // Flags Z 0 1 -

@@ -32,7 +32,7 @@ GB::GB() : stack(&registers.SP, &memory), idu(&registers, &memory), alu(&registe
 };
 
 // default unimplemented opcode handler =======
-int GB::op_unimplemented() {
+void GB::op_unimplemented() {
     std::stringstream ss;
     ss << "Unimplemented opcode at PC=0x" << std::hex << std::setw(4) << std::setfill('0') << this->registers.PC;
     throw std::runtime_error(ss.str());
@@ -52,419 +52,520 @@ int GB::op_unimplemented() {
 // NOP
 // 1 4
 // - - - -
-int GB::op_nop() { return 4; }
+void GB::op_nop() {
+    this->registers.PC += 1;
+    this->tstates += 4;
+}
 
 // 0x01
 // LD BC, n16
 // 3 12
 // - - - -
-int GB::op_ld_bc_n16() {
+void GB::op_ld_bc_n16() {
     uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.set_bc(n16);
-    return 12;
+
+    this->registers.PC += 3;
+    this->tstates += 12;
 }
 
 // 0x02
 // LD [BC], A
 // 1 8
 // - - - -
-int GB::op_ld_bcm_a() {
+void GB::op_ld_bcm_a() {
     this->memory.write_byte(this->registers.get_bc(), this->registers.A);
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x03
 // INC BC
 // 1 8
 // - - - -
-int GB::op_inc_bc() {
+void GB::op_inc_bc() {
     this->registers.set_bc(static_cast<uint16_t>(this->registers.get_bc() + 1));
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x04
 // INC B
 // 1 4
 // Z 0 H -
-int GB::op_inc_b() {
+void GB::op_inc_b() {
     this->idu.increment_r8(this->registers.B);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x05
 // DEC B
 // 1 4
 // Z 1 H -
-int GB::op_dec_b() {
+void GB::op_dec_b() {
     this->idu.decrement_r8(this->registers.B);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x06
 // LD B, n8
 // 2 8
 // - - - -
-int GB::op_ld_b_n8() {
+void GB::op_ld_b_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.B = n8;
-    return 8;
+
+    this->registers.PC += 2;
+    this->tstates += 8;
 }
 
 // 0x07
 // RLCA
 // 1 4
 // 0 0 0 C
-int GB::op_rlca() {
+void GB::op_rlca() {
     this->bmi.rlca();
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x08
 // LD [a16], SP
 // 3 20
 // - - - -
-int GB::op_ld_a16m_sp() {
+void GB::op_ld_a16m_sp() {
     uint16_t a16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->memory.write_word(a16, this->registers.SP);
-    return 20;
+
+    this->registers.PC += 3;
+    this->tstates += 20;
 }
 
 // 0x09
 // ADD HL, BC
 // 1 8
 // - 0 H C
-int GB::op_add_hl_bc() {
+void GB::op_add_hl_bc() {
     this->alu.add_u16(this->registers.get_bc());
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x0a
 // LD A, [BC]
 // 1 8
 // - - - -
-int GB::op_ld_a_bcm() {
+void GB::op_ld_a_bcm() {
     this->registers.A = this->memory.read_byte(this->registers.get_bc());
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x0b
 // DEC BC
 // 1 8
 // - - - -
-int GB::op_dec_bc() {
+void GB::op_dec_bc() {
     this->registers.set_bc(static_cast<uint16_t>(this->registers.get_bc() - 1));
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x0c
 // INC C
 // 1 4
 // Z 0 H -
-int GB::op_inc_c() {
+void GB::op_inc_c() {
     this->idu.increment_r8(this->registers.C);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x0d
 // DEC C
 // 1 4
 // Z 1 H -
-int GB::op_dec_c() {
+void GB::op_dec_c() {
     this->idu.decrement_r8(this->registers.C);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x0e
 // LD C, n8
 // 2 8
 // - - - -
-int GB::op_ld_c_n8() {
+void GB::op_ld_c_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.C = n8;
-    return 8;
+
+    this->registers.PC += 2;
+    this->tstates += 8;
 }
 
 // 0x0f
 // RRCA
 // 1 4
 // 0 0 0 C
-int GB::op_rrca() {
+void GB::op_rrca() {
     this->bmi.rrca();
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x10
 // STOP n8
 // 2 4
 // - - - -
-int GB::op_stop_n8() {
-    // TODO: implement STOP n8
-    return 0;
+void GB::op_stop_n8() {
+    this->stopped = true;
+
+    this->registers.PC += 2;
+    this->tstates += 4;
 }
 
 // 0x11
 // LD DE, n16
 // 3 12
 // - - - -
-int GB::op_ld_de_n16() {
+void GB::op_ld_de_n16() {
     uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.set_de(n16);
-    return 12;
+
+    this->registers.PC += 3;
+    this->tstates += 12;
 }
 
 // 0x12
 // LD [DE], A
 // 1 8
 // - - - -
-int GB::op_ld_dem_a() {
+void GB::op_ld_dem_a() {
     this->memory.write_byte(this->registers.get_de(), this->registers.A);
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x13
 // INC DE
 // 1 8
 // - - - -
-int GB::op_inc_de() {
+void GB::op_inc_de() {
     this->registers.set_de(static_cast<uint16_t>(this->registers.get_de() + 1));
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x14
 // INC D
 // 1 4
 // Z 0 H -
-int GB::op_inc_d() {
+void GB::op_inc_d() {
     this->idu.increment_r8(this->registers.D);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x15
 // DEC D
 // 1 4
 // Z 1 H -
-int GB::op_dec_d() {
+void GB::op_dec_d() {
     this->idu.decrement_r8(this->registers.D);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x16
 // LD D, n8
 // 2 8
 // - - - -
-int GB::op_ld_d_n8() {
+void GB::op_ld_d_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.D = n8;
-    return 8;
+
+    this->registers.PC += 2;
+    this->tstates += 8;
 }
 
 // 0x17
 // RLA
 // 1 4
 // 0 0 0 C
-int GB::op_rla() {
-    uint8_t carry_in = this->registers.get_flag_c() ? 1 : 0;
-    uint8_t new_carry = (this->registers.A & 0x80) >> 7;
-    this->registers.A = static_cast<uint8_t>((this->registers.A << 1) | carry_in);
+void GB::op_rla() {
+    this->bmi.rla();
 
-    this->registers.set_flag_z(false);
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h(false);
-    this->registers.set_flag_c(new_carry != 0);
-
-    return 4;
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x18
 // JR e8
 // 2 12
 // - - - -
-int GB::op_jr_e8() {
+void GB::op_jr_e8() {
     int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
     this->registers.PC += offset;
-    return 12;
+
+    this->tstates += 12;
 }
 
 // 0x19
 // ADD HL, DE
 // 1 8
 // - 0 H C
-int GB::op_add_hl_de() {
+void GB::op_add_hl_de() {
     this->alu.add_u16(this->registers.get_de());
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x1a
 // LD A, [DE]
 // 1 8
 // - - - -
-int GB::op_ld_a_dem() {
+void GB::op_ld_a_dem() {
     this->registers.A = this->memory.read_byte(this->registers.get_de());
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x1b
 // DEC DE
 // 1 8
 // - - - -
-int GB::op_dec_de() {
+void GB::op_dec_de() {
     this->registers.set_de(static_cast<uint16_t>(this->registers.get_de() - 1));
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x1c
 // INC E
 // 1 4
 // Z 0 H -
-int GB::op_inc_e() {
+void GB::op_inc_e() {
     this->idu.increment_r8(this->registers.E);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x1d
 // DEC E
 // 1 4
 // Z 1 H -
-int GB::op_dec_e() {
+void GB::op_dec_e() {
     this->idu.decrement_r8(this->registers.E);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x1e
 // LD E, n8
 // 2 8
 // - - - -
-int GB::op_ld_e_n8() {
+void GB::op_ld_e_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.E = n8;
-    return 8;
+
+    this->registers.PC += 2;
+    this->tstates += 8;
 }
 
 // 0x1f
 // RRA
 // 1 4
 // 0 0 0 C
-int GB::op_rra() {
+void GB::op_rra() {
     this->bmi.rra();
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x20
 // JR NZ, e8
 // 2 12/8
 // - - - -
-int GB::op_jr_nz_e8() {
+void GB::op_jr_nz_e8() {
     if (!this->registers.get_flag_z()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
         this->registers.PC += offset;
-        return 12;
+        this->tstates += 12;
+        return;
     }
-    return 8;
+    this->tstates += 8;
 }
 
 // 0x21
 // LD HL, n16
 // 3 12
 // - - - -
-int GB::op_ld_hl_a16() {
+void GB::op_ld_hl_a16() {
     uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.set_hl(n16);
-    return 12;
+
+    this->registers.PC += 3;
+    this->tstates += 12;
 }
 
 // 0x22
 // LD [HL+], A
 // 1 8
 // - - - -
-int GB::op_ld_hlim_a() {
+void GB::op_ld_hlim_a() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.A);
     this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x23
 // INC HL
 // 1 8
 // - - - -
-int GB::op_inc_hl() {
+void GB::op_inc_hl() {
     this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x24
 // INC H
 // 1 4
 // Z 0 H -
-int GB::op_inc_h() {
+void GB::op_inc_h() {
     this->idu.increment_r8(this->registers.H);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x25
 // DEC H
 // 1 4
 // Z 1 H -
-int GB::op_dec_h() {
+void GB::op_dec_h() {
     this->idu.decrement_r8(this->registers.H);
-    return 4;
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x26
 // LD H, n8
 // 2 8
 // - - - -
-int GB::op_ld_h_n8() {
+void GB::op_ld_h_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.H = n8;
-    return 8;
+
+    this->registers.PC += 2;
+    this->tstates += 8;
 }
 
 // 0x27
 // DAA
 // 1 4
 // Z - H C
-int GB::op_daa() {
-    // TODO: implement DAA
-    return 0;
+void GB::op_daa() {
+    uint8_t a = this->registers.A;
+    uint8_t adjust = 0;
+    bool carry = this->registers.get_flag_c();
+    bool subtract = this->registers.get_flag_n();
+
+    if (subtract) {
+        if (this->registers.get_flag_h()) adjust |= 0x06;
+        if (carry) adjust |= 0x60;
+        a = static_cast<uint8_t>(a - adjust);
+        // carry flag unaffected (remains as before)
+    } else {
+        if (this->registers.get_flag_h() || (a & 0x0F) > 9) adjust |= 0x06;
+        if (carry || a > 0x99) {
+            adjust |= 0x60;
+            carry = true;
+        } else {
+            carry = false;
+        }
+        a = static_cast<uint8_t>(a + adjust);
+    }
+
+    this->registers.A = a;
+    this->registers.set_flag_z(a == 0);
+    this->registers.set_flag_n(subtract);
+    this->registers.set_flag_h(false);
+    this->registers.set_flag_c(carry);
+
+    this->registers.PC += 1;
+    this->tstates += 4;
 }
 
 // 0x28
 // JR Z, e8
 // 2 12/8
 // - - - -
-int GB::op_jr_z_e8() {
+void GB::op_jr_z_e8() {
     if (this->registers.get_flag_z()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
         this->registers.PC += offset;
-        return 12;
+        this->tstates += 12;
+        return;
     }
-    return 8;
+    this->tstates += 8;
 }
 
 // 0x29
 // ADD HL, HL
 // 1 8
 // - 0 H C
-int GB::op_add_hl_hl() {
+void GB::op_add_hl_hl() {
     this->alu.add_u16(this->registers.get_hl());
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x2a
 // LD A, [HL+]
 // 1 8
 // - - - -
-int GB::op_ld_a_hlim() {
+void GB::op_ld_a_hlim() {
     this->registers.A = this->memory.read_byte(this->registers.get_hl());
     this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
-    return 8;
+
+    this->registers.PC += 1;
+    this->tstates += 8;
 }
 
 // 0x2b
 // DEC HL
 // 1 8
 // - - - -
-int GB::op_dec_hl() {
+void GB::op_dec_hl() {
     this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
     return 8;
 }
@@ -473,7 +574,7 @@ int GB::op_dec_hl() {
 // INC L
 // 1 4
 // Z 0 H -
-int GB::op_inc_l() {
+void GB::op_inc_l() {
     this->idu.increment_r8(this->registers.L);
     return 4;
 }
@@ -482,7 +583,7 @@ int GB::op_inc_l() {
 // DEC L
 // 1 4
 // Z 1 H -
-int GB::op_dec_l() {
+void GB::op_dec_l() {
     this->idu.decrement_r8(this->registers.L);
     return 4;
 }
@@ -491,7 +592,7 @@ int GB::op_dec_l() {
 // LD L, n8
 // 2 8
 // - - - -
-int GB::op_ld_l_n8() {
+void GB::op_ld_l_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.L = n8;
     return 8;
@@ -501,7 +602,7 @@ int GB::op_ld_l_n8() {
 // CPL
 // 1 4
 // - 1 1 -
-int GB::op_cpl() {
+void GB::op_cpl() {
     // TODO: implement CPL
     return 0;
 }
@@ -510,7 +611,7 @@ int GB::op_cpl() {
 // JR NC, e8
 // 2 12/8
 // - - - -
-int GB::op_jr_nc_e8() {
+void GB::op_jr_nc_e8() {
     if (!this->registers.get_flag_c()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
         this->registers.PC += offset;
@@ -523,7 +624,7 @@ int GB::op_jr_nc_e8() {
 // LD SP, n16
 // 3 12
 // - - - -
-int GB::op_ld_sp_a16() {
+void GB::op_ld_sp_a16() {
     uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.SP = n16;
     return 12;
@@ -533,7 +634,7 @@ int GB::op_ld_sp_a16() {
 // LD [HL-], A
 // 1 8
 // - - - -
-int GB::op_ld_hldm_a() {
+void GB::op_ld_hldm_a() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.A);
     this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
     return 8;
@@ -543,7 +644,7 @@ int GB::op_ld_hldm_a() {
 // INC SP
 // 1 8
 // - - - -
-int GB::op_inc_sp() {
+void GB::op_inc_sp() {
     this->registers.SP = static_cast<uint16_t>(this->registers.SP + 1);
     return 8;
 }
@@ -552,7 +653,7 @@ int GB::op_inc_sp() {
 // INC [HL]
 // 1 12
 // Z 0 H -
-int GB::op_inc_hlm() {
+void GB::op_inc_hlm() {
     this->idu.increment_mem8(this->registers.get_hl());
     return 12;
 }
@@ -561,7 +662,7 @@ int GB::op_inc_hlm() {
 // DEC [HL]
 // 1 12
 // Z 1 H -
-int GB::op_dec_hlm() {
+void GB::op_dec_hlm() {
     this->idu.decrement_mem8(this->registers.get_hl());
     return 12;
 }
@@ -570,7 +671,7 @@ int GB::op_dec_hlm() {
 // LD [HL], n8
 // 2 12
 // - - - -
-int GB::op_ld_hlm_n8() {
+void GB::op_ld_hlm_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->memory.write_byte(this->registers.get_hl(), n8);
     return 12;
@@ -580,7 +681,7 @@ int GB::op_ld_hlm_n8() {
 // SCF
 // 1 4
 // - 0 0 1
-int GB::op_scf() {
+void GB::op_scf() {
     this->registers.set_flag_n(false);
     this->registers.set_flag_h(false);
     this->registers.set_flag_c(true);
@@ -591,7 +692,7 @@ int GB::op_scf() {
 // JR C, e8
 // 2 12/8
 // - - - -
-int GB::op_jr_c_e8() {
+void GB::op_jr_c_e8() {
     if (this->registers.get_flag_c()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
         this->registers.PC += offset;
@@ -604,7 +705,7 @@ int GB::op_jr_c_e8() {
 // ADD HL, SP
 // 1 8
 // - 0 H C
-int GB::op_add_hl_sp() {
+void GB::op_add_hl_sp() {
     this->alu.add_u16(this->registers.SP);
     return 8;
 }
@@ -613,7 +714,7 @@ int GB::op_add_hl_sp() {
 // LD A, [HL-]
 // 1 8
 // - - - -
-int GB::op_ld_a_hldm() {
+void GB::op_ld_a_hldm() {
     this->registers.A = this->memory.read_byte(this->registers.get_hl());
     this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
     return 8;
@@ -623,7 +724,7 @@ int GB::op_ld_a_hldm() {
 // DEC SP
 // 1 8
 // - - - -
-int GB::op_dec_sp() {
+void GB::op_dec_sp() {
     this->registers.SP = static_cast<uint16_t>(this->registers.SP - 1);
     return 8;
 }
@@ -632,7 +733,7 @@ int GB::op_dec_sp() {
 // INC A
 // 1 4
 // Z 0 H -
-int GB::op_inc_a() {
+void GB::op_inc_a() {
     this->idu.increment_r8(this->registers.A);
     return 4;
 }
@@ -641,7 +742,7 @@ int GB::op_inc_a() {
 // DEC A
 // 1 4
 // Z 1 H -
-int GB::op_dec_a() {
+void GB::op_dec_a() {
     this->idu.decrement_r8(this->registers.A);
     return 4;
 }
@@ -650,7 +751,7 @@ int GB::op_dec_a() {
 // LD A, n8
 // 2 8
 // - - - -
-int GB::op_ld_a_n8() {
+void GB::op_ld_a_n8() {
     uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.A = n8;
     return 8;
@@ -660,7 +761,7 @@ int GB::op_ld_a_n8() {
 // CCF
 // 1 4
 // - 0 0 C
-int GB::op_ccf() {
+void GB::op_ccf() {
     this->registers.set_flag_n(false);
     this->registers.set_flag_h(false);
     this->registers.set_flag_c(!this->registers.get_flag_c());
@@ -671,7 +772,7 @@ int GB::op_ccf() {
 // LD B, B
 // 1 4
 // - - - -
-int GB::op_ld_b_b() {
+void GB::op_ld_b_b() {
     this->registers.B = this->registers.B;
     return 4;
 }
@@ -680,7 +781,7 @@ int GB::op_ld_b_b() {
 // LD B, C
 // 1 4
 // - - - -
-int GB::op_ld_b_c() {
+void GB::op_ld_b_c() {
     this->registers.B = this->registers.C;
     return 4;
 }
@@ -689,7 +790,7 @@ int GB::op_ld_b_c() {
 // LD B, D
 // 1 4
 // - - - -
-int GB::op_ld_b_d() {
+void GB::op_ld_b_d() {
     this->registers.B = this->registers.D;
     return 4;
 }
@@ -698,7 +799,7 @@ int GB::op_ld_b_d() {
 // LD B, E
 // 1 4
 // - - - -
-int GB::op_ld_b_e() {
+void GB::op_ld_b_e() {
     this->registers.B = this->registers.E;
     return 4;
 }
@@ -707,7 +808,7 @@ int GB::op_ld_b_e() {
 // LD B, H
 // 1 4
 // - - - -
-int GB::op_ld_b_h() {
+void GB::op_ld_b_h() {
     this->registers.B = this->registers.H;
     return 4;
 }
@@ -716,7 +817,7 @@ int GB::op_ld_b_h() {
 // LD B, L
 // 1 4
 // - - - -
-int GB::op_ld_b_l() {
+void GB::op_ld_b_l() {
     this->registers.B = this->registers.L;
     return 4;
 }
@@ -725,7 +826,7 @@ int GB::op_ld_b_l() {
 // LD B, [HL]
 // 1 8
 // - - - -
-int GB::op_ld_b_hlm() {
+void GB::op_ld_b_hlm() {
     this->registers.B = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
@@ -734,7 +835,7 @@ int GB::op_ld_b_hlm() {
 // LD B, A
 // 1 4
 // - - - -
-int GB::op_ld_b_a() {
+void GB::op_ld_b_a() {
     this->registers.B = this->registers.A;
     return 4;
 }
@@ -743,7 +844,7 @@ int GB::op_ld_b_a() {
 // LD C, B
 // 1 4
 // - - - -
-int GB::op_ld_c_b() {
+void GB::op_ld_c_b() {
     this->registers.C = this->registers.B;
     return 4;
 }
@@ -752,7 +853,7 @@ int GB::op_ld_c_b() {
 // LD C, C
 // 1 4
 // - - - -
-int GB::op_ld_c_c() {
+void GB::op_ld_c_c() {
     this->registers.C = this->registers.C;
     return 4;
 }
@@ -761,7 +862,7 @@ int GB::op_ld_c_c() {
 // LD C, D
 // 1 4
 // - - - -
-int GB::op_ld_c_d() {
+void GB::op_ld_c_d() {
     this->registers.C = this->registers.D;
     return 4;
 }
@@ -770,7 +871,7 @@ int GB::op_ld_c_d() {
 // LD C, E
 // 1 4
 // - - - -
-int GB::op_ld_c_e() {
+void GB::op_ld_c_e() {
     this->registers.C = this->registers.E;
     return 4;
 }
@@ -779,7 +880,7 @@ int GB::op_ld_c_e() {
 // LD C, H
 // 1 4
 // - - - -
-int GB::op_ld_c_h() {
+void GB::op_ld_c_h() {
     this->registers.C = this->registers.H;
     return 4;
 }
@@ -788,7 +889,7 @@ int GB::op_ld_c_h() {
 // LD C, L
 // 1 4
 // - - - -
-int GB::op_ld_c_l() {
+void GB::op_ld_c_l() {
     this->registers.C = this->registers.L;
     return 4;
 }
@@ -797,7 +898,7 @@ int GB::op_ld_c_l() {
 // LD C, [HL]
 // 1 8
 // - - - -
-int GB::op_ld_c_hlm() {
+void GB::op_ld_c_hlm() {
     this->registers.C = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
@@ -806,7 +907,7 @@ int GB::op_ld_c_hlm() {
 // LD C, A
 // 1 4
 // - - - -
-int GB::op_ld_c_a() {
+void GB::op_ld_c_a() {
     this->registers.C = this->registers.A;
     return 4;
 }
@@ -815,7 +916,7 @@ int GB::op_ld_c_a() {
 // LD D, B
 // 1 4
 // - - - -
-int GB::op_ld_d_b() {
+void GB::op_ld_d_b() {
     this->registers.D = this->registers.B;
     return 4;
 }
@@ -824,7 +925,7 @@ int GB::op_ld_d_b() {
 // LD D, C
 // 1 4
 // - - - -
-int GB::op_ld_d_c() {
+void GB::op_ld_d_c() {
     this->registers.D = this->registers.C;
     return 4;
 }
@@ -833,7 +934,7 @@ int GB::op_ld_d_c() {
 // LD D, D
 // 1 4
 // - - - -
-int GB::op_ld_d_d() {
+void GB::op_ld_d_d() {
     this->registers.D = this->registers.D;
     return 4;
 }
@@ -842,7 +943,7 @@ int GB::op_ld_d_d() {
 // LD D, E
 // 1 4
 // - - - -
-int GB::op_ld_d_e() {
+void GB::op_ld_d_e() {
     this->registers.D = this->registers.E;
     return 4;
 }
@@ -851,7 +952,7 @@ int GB::op_ld_d_e() {
 // LD D, H
 // 1 4
 // - - - -
-int GB::op_ld_d_h() {
+void GB::op_ld_d_h() {
     this->registers.D = this->registers.H;
     return 4;
 }
@@ -860,7 +961,7 @@ int GB::op_ld_d_h() {
 // LD D, L
 // 1 4
 // - - - -
-int GB::op_ld_d_l() {
+void GB::op_ld_d_l() {
     this->registers.D = this->registers.L;
     return 4;
 }
@@ -869,7 +970,7 @@ int GB::op_ld_d_l() {
 // LD D, [HL]
 // 1 8
 // - - - -
-int GB::op_ld_d_hlm() {
+void GB::op_ld_d_hlm() {
     this->registers.D = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
@@ -878,7 +979,7 @@ int GB::op_ld_d_hlm() {
 // LD D, A
 // 1 4
 // - - - -
-int GB::op_ld_d_a() {
+void GB::op_ld_d_a() {
     this->registers.D = this->registers.A;
     return 4;
 }
@@ -887,7 +988,7 @@ int GB::op_ld_d_a() {
 // LD E, B
 // 1 4
 // - - - -
-int GB::op_ld_e_b() {
+void GB::op_ld_e_b() {
     this->registers.E = this->registers.B;
     return 4;
 }
@@ -896,7 +997,7 @@ int GB::op_ld_e_b() {
 // LD E, C
 // 1 4
 // - - - -
-int GB::op_ld_e_c() {
+void GB::op_ld_e_c() {
     this->registers.E = this->registers.C;
     return 4;
 }
@@ -905,7 +1006,7 @@ int GB::op_ld_e_c() {
 // LD E, D
 // 1 4
 // - - - -
-int GB::op_ld_e_d() {
+void GB::op_ld_e_d() {
     this->registers.E = this->registers.D;
     return 4;
 }
@@ -914,7 +1015,7 @@ int GB::op_ld_e_d() {
 // LD E, E
 // 1 4
 // - - - -
-int GB::op_ld_e_e() {
+void GB::op_ld_e_e() {
     this->registers.E = this->registers.E;
     return 4;
 }
@@ -923,7 +1024,7 @@ int GB::op_ld_e_e() {
 // LD E, H
 // 1 4
 // - - - -
-int GB::op_ld_e_h() {
+void GB::op_ld_e_h() {
     this->registers.E = this->registers.H;
     return 4;
 }
@@ -932,7 +1033,7 @@ int GB::op_ld_e_h() {
 // LD E, L
 // 1 4
 // - - - -
-int GB::op_ld_e_l() {
+void GB::op_ld_e_l() {
     this->registers.E = this->registers.L;
     return 4;
 }
@@ -941,7 +1042,7 @@ int GB::op_ld_e_l() {
 // LD E, [HL]
 // 1 8
 // - - - -
-int GB::op_ld_e_hlm() {
+void GB::op_ld_e_hlm() {
     this->registers.E = this->memory.read_byte(this->registers.get_hl());
     return 4;
 }
@@ -950,7 +1051,7 @@ int GB::op_ld_e_hlm() {
 // LD E, A
 // 1 4
 // - - - -
-int GB::op_ld_e_a() {
+void GB::op_ld_e_a() {
     this->registers.E = this->registers.A;
     return 4;
 }
@@ -959,7 +1060,7 @@ int GB::op_ld_e_a() {
 // LD H, B
 // 1 4
 // - - - -
-int GB::op_ld_h_b() {
+void GB::op_ld_h_b() {
     this->registers.H = this->registers.B;
     return 4;
 }
@@ -968,7 +1069,7 @@ int GB::op_ld_h_b() {
 // LD H, C
 // 1 4
 // - - - -
-int GB::op_ld_h_c() {
+void GB::op_ld_h_c() {
     this->registers.H = this->registers.C;
     return 4;
 }
@@ -977,7 +1078,7 @@ int GB::op_ld_h_c() {
 // LD H, D
 // 1 4
 // - - - -
-int GB::op_ld_h_d() {
+void GB::op_ld_h_d() {
     this->registers.H = this->registers.D;
     return 4;
 }
@@ -986,7 +1087,7 @@ int GB::op_ld_h_d() {
 // LD H, E
 // 1 4
 // - - - -
-int GB::op_ld_h_e() {
+void GB::op_ld_h_e() {
     this->registers.H = this->registers.E;
     return 4;
 }
@@ -995,7 +1096,7 @@ int GB::op_ld_h_e() {
 // LD H, H
 // 1 4
 // - - - -
-int GB::op_ld_h_h() {
+void GB::op_ld_h_h() {
     this->registers.H = this->registers.H;
     return 4;
 }
@@ -1004,7 +1105,7 @@ int GB::op_ld_h_h() {
 // LD H, L
 // 1 4
 // - - - -
-int GB::op_ld_h_l() {
+void GB::op_ld_h_l() {
     this->registers.H = this->registers.L;
     return 4;
 }
@@ -1013,7 +1114,7 @@ int GB::op_ld_h_l() {
 // LD H, [HL]
 // 1 8
 // - - - -
-int GB::op_ld_h_hlm() {
+void GB::op_ld_h_hlm() {
     this->registers.H = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
@@ -1022,7 +1123,7 @@ int GB::op_ld_h_hlm() {
 // LD H, A
 // 1 4
 // - - - -
-int GB::op_ld_h_a() {
+void GB::op_ld_h_a() {
     this->registers.H = this->registers.A;
     return 4;
 }
@@ -1031,7 +1132,7 @@ int GB::op_ld_h_a() {
 // LD L, B
 // 1 4
 // - - - -
-int GB::op_ld_l_b() {
+void GB::op_ld_l_b() {
     this->registers.L = this->registers.B;
     return 4;
 }
@@ -1040,7 +1141,7 @@ int GB::op_ld_l_b() {
 // LD L, C
 // 1 4
 // - - - -
-int GB::op_ld_l_c() {
+void GB::op_ld_l_c() {
     this->registers.L = this->registers.C;
     return 4;
 }
@@ -1049,7 +1150,7 @@ int GB::op_ld_l_c() {
 // LD L, D
 // 1 4
 // - - - -
-int GB::op_ld_l_d() {
+void GB::op_ld_l_d() {
     this->registers.L = this->registers.D;
     return 4;
 }
@@ -1058,7 +1159,7 @@ int GB::op_ld_l_d() {
 // LD L, E
 // 1 4
 // - - - -
-int GB::op_ld_l_e() {
+void GB::op_ld_l_e() {
     this->registers.L = this->registers.E;
     return 4;
 }
@@ -1067,7 +1168,7 @@ int GB::op_ld_l_e() {
 // LD L, H
 // 1 4
 // - - - -
-int GB::op_ld_l_h() {
+void GB::op_ld_l_h() {
     this->registers.L = this->registers.H;
     return 4;
 }
@@ -1076,7 +1177,7 @@ int GB::op_ld_l_h() {
 // LD L, L
 // 1 4
 // - - - -
-int GB::op_ld_l_l() {
+void GB::op_ld_l_l() {
     this->registers.L = this->registers.L;
     return 4;
 }
@@ -1085,7 +1186,7 @@ int GB::op_ld_l_l() {
 // LD L, [HL]
 // 1 8
 // - - - -
-int GB::op_ld_l_hlm() {
+void GB::op_ld_l_hlm() {
     this->registers.L = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
@@ -1094,7 +1195,7 @@ int GB::op_ld_l_hlm() {
 // LD L, A
 // 1 4
 // - - - -
-int GB::op_ld_l_a() {
+void GB::op_ld_l_a() {
     this->registers.L = this->registers.A;
     return 4;
 }
@@ -1103,7 +1204,7 @@ int GB::op_ld_l_a() {
 // LD [HL], B
 // 1 8
 // - - - -
-int GB::op_ld_hlm_b() {
+void GB::op_ld_hlm_b() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.B);
     return 8;
 }
@@ -1112,7 +1213,7 @@ int GB::op_ld_hlm_b() {
 // LD [HL], C
 // 1 8
 // - - - -
-int GB::op_ld_hlm_c() {
+void GB::op_ld_hlm_c() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.C);
     return 8;
 }
@@ -1121,7 +1222,7 @@ int GB::op_ld_hlm_c() {
 // LD [HL], D
 // 1 8
 // - - - -
-int GB::op_ld_hlm_d() {
+void GB::op_ld_hlm_d() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.D);
     return 8;
 }
@@ -1130,7 +1231,7 @@ int GB::op_ld_hlm_d() {
 // LD [HL], E
 // 1 8
 // - - - -
-int GB::op_ld_hlm_e() {
+void GB::op_ld_hlm_e() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.E);
     return 8;
 }
@@ -1139,7 +1240,7 @@ int GB::op_ld_hlm_e() {
 // LD [HL], H
 // 1 8
 // - - - -
-int GB::op_ld_hlm_h() {
+void GB::op_ld_hlm_h() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.H);
     return 8;
 }
@@ -1148,7 +1249,7 @@ int GB::op_ld_hlm_h() {
 // LD [HL], L
 // 1 8
 // - - - -
-int GB::op_ld_hlm_l() {
+void GB::op_ld_hlm_l() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.L);
     return 8;
 }
@@ -1157,7 +1258,7 @@ int GB::op_ld_hlm_l() {
 // HALT
 // 1 4
 // - - - -
-int GB::op_halt() {
+void GB::op_halt() {
     // TODO: implement HALT
     return 0;
 }
@@ -1166,7 +1267,7 @@ int GB::op_halt() {
 // LD [HL], A
 // 1 8
 // - - - -
-int GB::op_ld_hlm_a() {
+void GB::op_ld_hlm_a() {
     this->memory.write_byte(this->registers.get_hl(), this->registers.A);
     return 8;
 }
@@ -1175,7 +1276,7 @@ int GB::op_ld_hlm_a() {
 // LD A, B
 // 1 4
 // - - - -
-int GB::op_ld_a_b() {
+void GB::op_ld_a_b() {
     this->registers.A = this->registers.B;
     return 4;
 }
@@ -1184,7 +1285,7 @@ int GB::op_ld_a_b() {
 // LD A, C
 // 1 4
 // - - - -
-int GB::op_ld_a_c() {
+void GB::op_ld_a_c() {
     this->registers.A = this->registers.C;
     return 4;
 }
@@ -1193,7 +1294,7 @@ int GB::op_ld_a_c() {
 // LD A, D
 // 1 4
 // - - - -
-int GB::op_ld_a_d() {
+void GB::op_ld_a_d() {
     this->registers.A = this->registers.D;
     return 4;
 }
@@ -1202,7 +1303,7 @@ int GB::op_ld_a_d() {
 // LD A, E
 // 1 4
 // - - - -
-int GB::op_ld_a_e() {
+void GB::op_ld_a_e() {
     this->registers.A = this->registers.E;
     return 4;
 }
@@ -1211,7 +1312,7 @@ int GB::op_ld_a_e() {
 // LD A, H
 // 1 4
 // - - - -
-int GB::op_ld_a_h() {
+void GB::op_ld_a_h() {
     this->registers.A = this->registers.H;
     return 4;
 }
@@ -1220,7 +1321,7 @@ int GB::op_ld_a_h() {
 // LD A, L
 // 1 4
 // - - - -
-int GB::op_ld_a_l() {
+void GB::op_ld_a_l() {
     this->registers.A = this->registers.L;
     return 4;
 }
@@ -1229,7 +1330,7 @@ int GB::op_ld_a_l() {
 // LD A, [HL]
 // 1 8
 // - - - -
-int GB::op_ld_a_hlm() {
+void GB::op_ld_a_hlm() {
     this->registers.A = this->memory.read_byte(this->registers.get_hl());
     return 8;
 }
@@ -1238,7 +1339,7 @@ int GB::op_ld_a_hlm() {
 // LD A, A
 // 1 4
 // - - - -
-int GB::op_ld_a_a() {
+void GB::op_ld_a_a() {
     this->registers.A = this->registers.A;
     return 4;
 }
@@ -1247,7 +1348,7 @@ int GB::op_ld_a_a() {
 // ADD A, B
 // 1 4
 // Z 0 H C
-int GB::op_add_a_b() {
+void GB::op_add_a_b() {
     this->alu.add_u8(this->registers.B);
     return 4;
 }
@@ -1256,7 +1357,7 @@ int GB::op_add_a_b() {
 // ADD A, C
 // 1 4
 // Z 0 H C
-int GB::op_add_a_c() {
+void GB::op_add_a_c() {
     this->alu.add_u8(this->registers.C);
     return 4;
 }
@@ -1265,7 +1366,7 @@ int GB::op_add_a_c() {
 // ADD A, D
 // 1 4
 // Z 0 H C
-int GB::op_add_a_d() {
+void GB::op_add_a_d() {
     this->alu.add_u8(this->registers.D);
     return 4;
 }
@@ -1274,7 +1375,7 @@ int GB::op_add_a_d() {
 // ADD A, E
 // 1 4
 // Z 0 H C
-int GB::op_add_a_e() {
+void GB::op_add_a_e() {
     this->alu.add_u8(this->registers.E);
     return 4;
 }
@@ -1283,7 +1384,7 @@ int GB::op_add_a_e() {
 // ADD A, H
 // 1 4
 // Z 0 H C
-int GB::op_add_a_h() {
+void GB::op_add_a_h() {
     this->alu.add_u8(this->registers.H);
     return 4;
 }
@@ -1292,7 +1393,7 @@ int GB::op_add_a_h() {
 // ADD A, L
 // 1 4
 // Z 0 H C
-int GB::op_add_a_l() {
+void GB::op_add_a_l() {
     this->alu.add_u8(this->registers.L);
     return 4;
 }
@@ -1301,7 +1402,7 @@ int GB::op_add_a_l() {
 // ADD A, [HL]
 // 1 8
 // Z 0 H C
-int GB::op_add_a_hlm() {
+void GB::op_add_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.add_u8(value);
     return 8;
@@ -1311,7 +1412,7 @@ int GB::op_add_a_hlm() {
 // ADD A, A
 // 1 4
 // Z 0 H C
-int GB::op_add_a_a() {
+void GB::op_add_a_a() {
     this->alu.add_u8(this->registers.A);
     return 4;
 }
@@ -1320,7 +1421,7 @@ int GB::op_add_a_a() {
 // ADC A, B
 // 1 4
 // Z 0 H C
-int GB::op_adc_a_b() {
+void GB::op_adc_a_b() {
     this->alu.adc_u8(this->registers.B);
     return 4;
 }
@@ -1329,7 +1430,7 @@ int GB::op_adc_a_b() {
 // ADC A, C
 // 1 4
 // Z 0 H C
-int GB::op_adc_a_c() {
+void GB::op_adc_a_c() {
     this->alu.adc_u8(this->registers.C);
     return 4;
 }
@@ -1338,7 +1439,7 @@ int GB::op_adc_a_c() {
 // ADC A, D
 // 1 4
 // Z 0 H C
-int GB::op_adc_a_d() {
+void GB::op_adc_a_d() {
     this->alu.adc_u8(this->registers.D);
     return 4;
 }
@@ -1347,7 +1448,7 @@ int GB::op_adc_a_d() {
 // ADC A, E
 // 1 4
 // Z 0 H C
-int GB::op_adc_a_e() {
+void GB::op_adc_a_e() {
     this->alu.adc_u8(this->registers.E);
     return 4;
 }
@@ -1356,7 +1457,7 @@ int GB::op_adc_a_e() {
 // ADC A, H
 // 1 4
 // Z 0 H C
-int GB::op_adc_a_h() {
+void GB::op_adc_a_h() {
     this->alu.adc_u8(this->registers.H);
     return 4;
 }
@@ -1365,7 +1466,7 @@ int GB::op_adc_a_h() {
 // ADC A, L
 // 1 4
 // Z 0 H C
-int GB::op_adc_a_l() {
+void GB::op_adc_a_l() {
     this->alu.adc_u8(this->registers.L);
     return 4;
 }
@@ -1374,7 +1475,7 @@ int GB::op_adc_a_l() {
 // ADC A, [HL]
 // 1 8
 // Z 0 H C
-int GB::op_adc_a_hlm() {
+void GB::op_adc_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.adc_u8(value);
     return 8;
@@ -1384,7 +1485,7 @@ int GB::op_adc_a_hlm() {
 // ADC A, A
 // 1 4
 // Z 0 H C
-int GB::op_adc_a_a() {
+void GB::op_adc_a_a() {
     this->alu.adc_u8(this->registers.A);
     return 4;
 }
@@ -1393,7 +1494,7 @@ int GB::op_adc_a_a() {
 // SUB A, B
 // 1 4
 // Z 1 H C
-int GB::op_sub_a_b() {
+void GB::op_sub_a_b() {
     this->alu.sub_u8(this->registers.B);
     return 4;
 }
@@ -1402,7 +1503,7 @@ int GB::op_sub_a_b() {
 // SUB A, C
 // 1 4
 // Z 1 H C
-int GB::op_sub_a_c() {
+void GB::op_sub_a_c() {
     this->alu.sub_u8(this->registers.C);
     return 4;
 }
@@ -1411,7 +1512,7 @@ int GB::op_sub_a_c() {
 // SUB A, D
 // 1 4
 // Z 1 H C
-int GB::op_sub_a_d() {
+void GB::op_sub_a_d() {
     this->alu.sub_u8(this->registers.D);
     return 4;
 }
@@ -1420,7 +1521,7 @@ int GB::op_sub_a_d() {
 // SUB A, E
 // 1 4
 // Z 1 H C
-int GB::op_sub_a_e() {
+void GB::op_sub_a_e() {
     this->alu.sub_u8(this->registers.E);
     return 4;
 }
@@ -1429,7 +1530,7 @@ int GB::op_sub_a_e() {
 // SUB A, H
 // 1 4
 // Z 1 H C
-int GB::op_sub_a_h() {
+void GB::op_sub_a_h() {
     this->alu.sub_u8(this->registers.H);
     return 4;
 }
@@ -1438,7 +1539,7 @@ int GB::op_sub_a_h() {
 // SUB A, L
 // 1 4
 // Z 1 H C
-int GB::op_sub_a_l() {
+void GB::op_sub_a_l() {
     this->alu.sub_u8(this->registers.L);
     return 4;
 }
@@ -1447,7 +1548,7 @@ int GB::op_sub_a_l() {
 // SUB A, [HL]
 // 1 8
 // Z 1 H C
-int GB::op_sub_a_hlm() {
+void GB::op_sub_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.sub_u8(value);
     return 8;
@@ -1457,7 +1558,7 @@ int GB::op_sub_a_hlm() {
 // SUB A, A
 // 1 4
 // Z 1 H C
-int GB::op_sub_a_a() {
+void GB::op_sub_a_a() {
     this->alu.sub_u8(this->registers.A);
     return 4;
 }
@@ -1466,7 +1567,7 @@ int GB::op_sub_a_a() {
 // SBC A, B
 // 1 4
 // Z 1 H C
-int GB::op_sbc_a_b() {
+void GB::op_sbc_a_b() {
     this->alu.sbc_u8(this->registers.B);
     return 4;
 }
@@ -1475,7 +1576,7 @@ int GB::op_sbc_a_b() {
 // SBC A, C
 // 1 4
 // Z 1 H C
-int GB::op_sbc_a_c() {
+void GB::op_sbc_a_c() {
     this->alu.sbc_u8(this->registers.C);
     return 4;
 }
@@ -1484,7 +1585,7 @@ int GB::op_sbc_a_c() {
 // SBC A, D
 // 1 4
 // Z 1 H C
-int GB::op_sbc_a_d() {
+void GB::op_sbc_a_d() {
     this->alu.sbc_u8(this->registers.D);
     return 4;
 }
@@ -1493,7 +1594,7 @@ int GB::op_sbc_a_d() {
 // SBC A, E
 // 1 4
 // Z 1 H C
-int GB::op_sbc_a_e() {
+void GB::op_sbc_a_e() {
     this->alu.sbc_u8(this->registers.E);
     return 4;
 }
@@ -1502,7 +1603,7 @@ int GB::op_sbc_a_e() {
 // SBC A, H
 // 1 4
 // Z 1 H C
-int GB::op_sbc_a_h() {
+void GB::op_sbc_a_h() {
     this->alu.sbc_u8(this->registers.H);
     return 4;
 }
@@ -1511,7 +1612,7 @@ int GB::op_sbc_a_h() {
 // SBC A, L
 // 1 4
 // Z 1 H C
-int GB::op_sbc_a_l() {
+void GB::op_sbc_a_l() {
     this->alu.sbc_u8(this->registers.L);
     return 4;
 }
@@ -1520,7 +1621,7 @@ int GB::op_sbc_a_l() {
 // SBC A, [HL]
 // 1 8
 // Z 1 H C
-int GB::op_sbc_a_hlm() {
+void GB::op_sbc_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.sbc_u8(value);
     return 8;
@@ -1530,7 +1631,7 @@ int GB::op_sbc_a_hlm() {
 // SBC A, A
 // 1 4
 // Z 1 H C
-int GB::op_sbc_a_a() {
+void GB::op_sbc_a_a() {
     this->alu.sbc_u8(this->registers.A);
     return 4;
 }
@@ -1539,7 +1640,7 @@ int GB::op_sbc_a_a() {
 // AND A, B
 // 1 4
 // Z 0 1 0
-int GB::op_and_a_b() {
+void GB::op_and_a_b() {
     this->alu.and_u8(this->registers.B);
     return 4;
 }
@@ -1548,7 +1649,7 @@ int GB::op_and_a_b() {
 // AND A, C
 // 1 4
 // Z 0 1 0
-int GB::op_and_a_c() {
+void GB::op_and_a_c() {
     this->alu.and_u8(this->registers.C);
     return 4;
 }
@@ -1557,7 +1658,7 @@ int GB::op_and_a_c() {
 // AND A, D
 // 1 4
 // Z 0 1 0
-int GB::op_and_a_d() {
+void GB::op_and_a_d() {
     this->alu.and_u8(this->registers.D);
     return 4;
 }
@@ -1566,7 +1667,7 @@ int GB::op_and_a_d() {
 // AND A, E
 // 1 4
 // Z 0 1 0
-int GB::op_and_a_e() {
+void GB::op_and_a_e() {
     this->alu.and_u8(this->registers.E);
     return 4;
 }
@@ -1575,7 +1676,7 @@ int GB::op_and_a_e() {
 // AND A, H
 // 1 4
 // Z 0 1 0
-int GB::op_and_a_h() {
+void GB::op_and_a_h() {
     this->alu.and_u8(this->registers.H);
     return 4;
 }
@@ -1584,7 +1685,7 @@ int GB::op_and_a_h() {
 // AND A, L
 // 1 4
 // Z 0 1 0
-int GB::op_and_a_l() {
+void GB::op_and_a_l() {
     this->alu.and_u8(this->registers.L);
     return 4;
 }
@@ -1593,7 +1694,7 @@ int GB::op_and_a_l() {
 // AND A, [HL]
 // 1 8
 // Z 0 1 0
-int GB::op_and_a_hlm() {
+void GB::op_and_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.and_u8(value);
     return 8;
@@ -1603,7 +1704,7 @@ int GB::op_and_a_hlm() {
 // AND A, A
 // 1 4
 // Z 0 1 0
-int GB::op_and_a_a() {
+void GB::op_and_a_a() {
     this->alu.and_u8(this->registers.A);
     return 4;
 }
@@ -1612,7 +1713,7 @@ int GB::op_and_a_a() {
 // XOR A, B
 // 1 4
 // Z 0 0 0
-int GB::op_xor_a_b() {
+void GB::op_xor_a_b() {
     this->alu.xor_u8(this->registers.B);
     return 4;
 }
@@ -1621,7 +1722,7 @@ int GB::op_xor_a_b() {
 // XOR A, C
 // 1 4
 // Z 0 0 0
-int GB::op_xor_a_c() {
+void GB::op_xor_a_c() {
     this->alu.xor_u8(this->registers.C);
     return 4;
 }
@@ -1630,7 +1731,7 @@ int GB::op_xor_a_c() {
 // XOR A, D
 // 1 4
 // Z 0 0 0
-int GB::op_xor_a_d() {
+void GB::op_xor_a_d() {
     this->alu.xor_u8(this->registers.D);
     return 4;
 }
@@ -1639,7 +1740,7 @@ int GB::op_xor_a_d() {
 // XOR A, E
 // 1 4
 // Z 0 0 0
-int GB::op_xor_a_e() {
+void GB::op_xor_a_e() {
     this->alu.xor_u8(this->registers.E);
     return 4;
 }
@@ -1648,7 +1749,7 @@ int GB::op_xor_a_e() {
 // XOR A, H
 // 1 4
 // Z 0 0 0
-int GB::op_xor_a_h() {
+void GB::op_xor_a_h() {
     this->alu.xor_u8(this->registers.H);
     return 4;
 }
@@ -1657,7 +1758,7 @@ int GB::op_xor_a_h() {
 // XOR A, L
 // 1 4
 // Z 0 0 0
-int GB::op_xor_a_l() {
+void GB::op_xor_a_l() {
     this->alu.xor_u8(this->registers.L);
     return 4;
 }
@@ -1666,7 +1767,7 @@ int GB::op_xor_a_l() {
 // XOR A, [HL]
 // 1 8
 // Z 0 0 0
-int GB::op_xor_a_hlm() {
+void GB::op_xor_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.xor_u8(value);
     return 8;
@@ -1676,7 +1777,7 @@ int GB::op_xor_a_hlm() {
 // XOR A, A
 // 1 4
 // Z 0 0 0
-int GB::op_xor_a_a() {
+void GB::op_xor_a_a() {
     this->alu.xor_u8(this->registers.A);
     return 4;
 }
@@ -1685,7 +1786,7 @@ int GB::op_xor_a_a() {
 // OR A, B
 // 1 4
 // Z 0 0 0
-int GB::op_or_a_b() {
+void GB::op_or_a_b() {
     this->alu.or_u8(this->registers.B);
     return 4;
 }
@@ -1694,7 +1795,7 @@ int GB::op_or_a_b() {
 // OR A, C
 // 1 4
 // Z 0 0 0
-int GB::op_or_a_c() {
+void GB::op_or_a_c() {
     this->alu.or_u8(this->registers.C);
     return 4;
 }
@@ -1703,7 +1804,7 @@ int GB::op_or_a_c() {
 // OR A, D
 // 1 4
 // Z 0 0 0
-int GB::op_or_a_d() {
+void GB::op_or_a_d() {
     this->alu.or_u8(this->registers.D);
     return 4;
 }
@@ -1712,7 +1813,7 @@ int GB::op_or_a_d() {
 // OR A, E
 // 1 4
 // Z 0 0 0
-int GB::op_or_a_e() {
+void GB::op_or_a_e() {
     this->alu.or_u8(this->registers.E);
     return 4;
 }
@@ -1721,7 +1822,7 @@ int GB::op_or_a_e() {
 // OR A, H
 // 1 4
 // Z 0 0 0
-int GB::op_or_a_h() {
+void GB::op_or_a_h() {
     this->alu.or_u8(this->registers.H);
     return 4;
 }
@@ -1730,7 +1831,7 @@ int GB::op_or_a_h() {
 // OR A, L
 // 1 4
 // Z 0 0 0
-int GB::op_or_a_l() {
+void GB::op_or_a_l() {
     this->alu.or_u8(this->registers.L);
     return 4;
 }
@@ -1739,7 +1840,7 @@ int GB::op_or_a_l() {
 // OR A, [HL]
 // 1 8
 // Z 0 0 0
-int GB::op_or_a_hlm() {
+void GB::op_or_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.or_u8(value);
     return 8;
@@ -1749,7 +1850,7 @@ int GB::op_or_a_hlm() {
 // OR A, A
 // 1 4
 // Z 0 0 0
-int GB::op_or_a_a() {
+void GB::op_or_a_a() {
     this->alu.or_u8(this->registers.A);
     return 4;
 }
@@ -1758,7 +1859,7 @@ int GB::op_or_a_a() {
 // CP A, B
 // 1 4
 // Z 1 H C
-int GB::op_cp_a_b() {
+void GB::op_cp_a_b() {
     this->alu.cp_u8(this->registers.B);
     return 4;
 }
@@ -1767,7 +1868,7 @@ int GB::op_cp_a_b() {
 // CP A, C
 // 1 4
 // Z 1 H C
-int GB::op_cp_a_c() {
+void GB::op_cp_a_c() {
     this->alu.cp_u8(this->registers.C);
     return 4;
 }
@@ -1776,7 +1877,7 @@ int GB::op_cp_a_c() {
 // CP A, D
 // 1 4
 // Z 1 H C
-int GB::op_cp_a_d() {
+void GB::op_cp_a_d() {
     this->alu.cp_u8(this->registers.D);
     return 4;
 }
@@ -1785,7 +1886,7 @@ int GB::op_cp_a_d() {
 // CP A, E
 // 1 4
 // Z 1 H C
-int GB::op_cp_a_e() {
+void GB::op_cp_a_e() {
     this->alu.cp_u8(this->registers.E);
     return 4;
 }
@@ -1794,7 +1895,7 @@ int GB::op_cp_a_e() {
 // CP A, H
 // 1 4
 // Z 1 H C
-int GB::op_cp_a_h() {
+void GB::op_cp_a_h() {
     this->alu.cp_u8(this->registers.H);
     return 4;
 }
@@ -1803,7 +1904,7 @@ int GB::op_cp_a_h() {
 // CP A, L
 // 1 4
 // Z 1 H C
-int GB::op_cp_a_l() {
+void GB::op_cp_a_l() {
     this->alu.cp_u8(this->registers.L);
     return 4;
 }
@@ -1812,7 +1913,7 @@ int GB::op_cp_a_l() {
 // CP A, [HL]
 // 1 8
 // Z 1 H C
-int GB::op_cp_a_hlm() {
+void GB::op_cp_a_hlm() {
     uint8_t value = this->memory.read_byte(this->registers.get_hl());
     this->alu.cp_u8(value);
     return 8;
@@ -1822,7 +1923,7 @@ int GB::op_cp_a_hlm() {
 // CP A, A
 // 1 4
 // 1 1 0 0
-int GB::op_cp_a_a() {
+void GB::op_cp_a_a() {
     this->alu.cp_u8(this->registers.A);
     this->registers.set_flag_z(true);
     this->registers.set_flag_n(true);
@@ -1835,7 +1936,7 @@ int GB::op_cp_a_a() {
 // RET NZ
 // 1 20/8
 // - - - -
-int GB::op_ret_nz() {
+void GB::op_ret_nz() {
     if (!this->registers.get_flag_z()) {
         uint16_t address = this->stack.pop_word();
         this->registers.PC = address;
@@ -1848,7 +1949,7 @@ int GB::op_ret_nz() {
 // POP BC
 // 1 12
 // - - - -
-int GB::op_pop_bc() {
+void GB::op_pop_bc() {
     uint16_t word = this->stack.pop_word();
     this->registers.set_bc(word);
     return 12;
@@ -1858,7 +1959,7 @@ int GB::op_pop_bc() {
 // JP NZ, a16
 // 3 16/12
 // - - - -
-int GB::op_jp_nz_a16() {
+void GB::op_jp_nz_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     if (!this->registers.get_flag_z()) {
         this->registers.PC = address;
@@ -1871,7 +1972,7 @@ int GB::op_jp_nz_a16() {
 // JP a16
 // 3 16
 // - - - -
-int GB::op_jp_a16() {
+void GB::op_jp_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = address;
     return 16;
@@ -1881,7 +1982,7 @@ int GB::op_jp_a16() {
 // CALL NZ, a16
 // 3 24/12
 // - - - -
-int GB::op_call_nz_a16() {
+void GB::op_call_nz_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
 
     if (!this->registers.get_flag_z()) {
@@ -1898,7 +1999,7 @@ int GB::op_call_nz_a16() {
 // PUSH BC
 // 1 16
 // - - - -
-int GB::op_push_bc() {
+void GB::op_push_bc() {
     this->stack.push_word(this->registers.get_bc());
     return 16;
 }
@@ -1907,7 +2008,7 @@ int GB::op_push_bc() {
 // ADD A, n8
 // 2 8
 // Z 0 H C
-int GB::op_add_a_n8() {
+void GB::op_add_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.add_u8(value);
     return 8;
@@ -1917,7 +2018,7 @@ int GB::op_add_a_n8() {
 // RST $00
 // 1 16
 // - - - -
-int GB::op_rst_00() {
+void GB::op_rst_00() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0000;
     return 16;
@@ -1927,7 +2028,7 @@ int GB::op_rst_00() {
 // RET Z
 // 1 20/8
 // - - - -
-int GB::op_ret_z() {
+void GB::op_ret_z() {
     if (this->registers.get_flag_z()) {
         uint16_t address = this->stack.pop_word();
         this->registers.PC = address;
@@ -1940,7 +2041,7 @@ int GB::op_ret_z() {
 // RET
 // 1 16
 // - - - -
-int GB::op_ret() {
+void GB::op_ret() {
     uint16_t address = this->stack.pop_word();
     this->registers.PC = address;
     return 16;
@@ -1950,7 +2051,7 @@ int GB::op_ret() {
 // JP Z, a16
 // 3 16/12
 // - - - -
-int GB::op_jp_z_a16() {
+void GB::op_jp_z_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     if (this->registers.get_flag_z()) {
         this->registers.PC = address;
@@ -1963,18 +2064,16 @@ int GB::op_jp_z_a16() {
 // PREFIX
 // 1 4
 // - - - -
-int GB::op_prefix() {
+void GB::op_prefix() {
     uint8_t cb = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    auto &entry = this->cb_ops[cb];
-    // call member function pointer
-    return (this->*entry.fn)();
+    this->exec_cb(cb); // PC + Cycles handled in exec_cb
 }
 
 // 0xcc
 // CALL Z, a16
 // 3 24/12
 // - - - -
-int GB::op_call_z_a16() {
+void GB::op_call_z_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
 
     if (this->registers.get_flag_z()) {
@@ -1991,7 +2090,7 @@ int GB::op_call_z_a16() {
 // CALL a16
 // 3 24
 // - - - -
-int GB::op_call_a16() {
+void GB::op_call_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
 
     uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
@@ -2005,7 +2104,7 @@ int GB::op_call_a16() {
 // ADC A, n8
 // 2 8
 // Z 0 H C
-int GB::op_adc_a_n8() {
+void GB::op_adc_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.adc_u8(value);
     return 8;
@@ -2015,7 +2114,7 @@ int GB::op_adc_a_n8() {
 // RST $08
 // 1 16
 // - - - -
-int GB::op_rst_08() {
+void GB::op_rst_08() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0008;
     return 16;
@@ -2025,7 +2124,7 @@ int GB::op_rst_08() {
 // RET NC
 // 1 20/8
 // - - - -
-int GB::op_ret_nc() {
+void GB::op_ret_nc() {
     if (!this->registers.get_flag_c()) {
         uint16_t address = this->stack.pop_word();
         this->registers.PC = address;
@@ -2038,7 +2137,7 @@ int GB::op_ret_nc() {
 // POP DE
 // 1 12
 // - - - -
-int GB::op_pop_de() {
+void GB::op_pop_de() {
     uint16_t word = this->stack.pop_word();
     this->registers.set_de(word);
     return 12;
@@ -2048,7 +2147,7 @@ int GB::op_pop_de() {
 // JP NC, a16
 // 3 16/12
 // - - - -
-int GB::op_jp_nc_a16() {
+void GB::op_jp_nc_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     if (!this->registers.get_flag_c()) {
         this->registers.PC = address;
@@ -2061,7 +2160,7 @@ int GB::op_jp_nc_a16() {
 // Unused opcode
 // 1 4
 // - - - -
-// int GB::op_unused_d3() {
+// void GB::op_unused_d3() {
 //     return 0;
 // }
 
@@ -2069,7 +2168,7 @@ int GB::op_jp_nc_a16() {
 // CALL NC, a16
 // 3 24/12
 // - - - -
-int GB::op_call_nc_a16() {
+void GB::op_call_nc_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
 
     if (!this->registers.get_flag_c()) {
@@ -2086,7 +2185,7 @@ int GB::op_call_nc_a16() {
 // PUSH DE
 // 1 16
 // - - - -
-int GB::op_push_de() {
+void GB::op_push_de() {
     this->stack.push_word(this->registers.get_de());
     return 16;
 }
@@ -2095,7 +2194,7 @@ int GB::op_push_de() {
 // SUB A, n8
 // 2 8
 // Z 1 H C
-int GB::op_sub_a_n8() {
+void GB::op_sub_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.sub_u8(value);
     return 8;
@@ -2105,7 +2204,7 @@ int GB::op_sub_a_n8() {
 // RST $10
 // 1 16
 // - - - -
-int GB::op_rst_10() {
+void GB::op_rst_10() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0010;
     return 16;
@@ -2115,7 +2214,7 @@ int GB::op_rst_10() {
 // RET C
 // 1 20/8
 // - - - -
-int GB::op_ret_c() {
+void GB::op_ret_c() {
     if (this->registers.get_flag_c()) {
         uint16_t address = this->stack.pop_word();
         this->registers.PC = address;
@@ -2128,7 +2227,7 @@ int GB::op_ret_c() {
 // RETI
 // 1 16
 // - - - -
-int GB::op_reti() {
+void GB::op_reti() {
     // TODO: implement RETI
     return 0;
 }
@@ -2137,7 +2236,7 @@ int GB::op_reti() {
 // JP C, a16
 // 3 16/12
 // - - - -
-int GB::op_jp_c_a16() {
+void GB::op_jp_c_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     if (this->registers.get_flag_c()) {
         this->registers.PC = address;
@@ -2150,7 +2249,7 @@ int GB::op_jp_c_a16() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_db() {
+// void GB::op_unused_db() {
 //     return 0;
 // }
 
@@ -2158,7 +2257,7 @@ int GB::op_jp_c_a16() {
 // CALL C, a16
 // 3 24/12
 // - - - -
-int GB::op_call_c_a16() {
+void GB::op_call_c_a16() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
 
     if (this->registers.get_flag_c()) {
@@ -2175,7 +2274,7 @@ int GB::op_call_c_a16() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_dd() {
+// void GB::op_unused_dd() {
 //     return 0;
 // }
 
@@ -2183,7 +2282,7 @@ int GB::op_call_c_a16() {
 // SBC A, n8
 // 2 8
 // Z 1 H C
-int GB::op_sbc_a_n8() {
+void GB::op_sbc_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.sbc_u8(value);
     return 8;
@@ -2193,7 +2292,7 @@ int GB::op_sbc_a_n8() {
 // RST $18
 // 1 16
 // - - - -
-int GB::op_rst_18() {
+void GB::op_rst_18() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0018;
     return 16;
@@ -2204,7 +2303,7 @@ int GB::op_rst_18() {
 // 2 12
 // - - - -
 // Notes: a8 means 8-bit unsigned data, which is added to $FF00 in certain instructions to create a 16-bit address in HRAM (High RAM)
-int GB::op_ldh_a8m_a() {
+void GB::op_ldh_a8m_a() {
     uint16_t address = 0xFF00 + static_cast<uint16_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
     this->memory.write_byte(address, this->registers.A);
     return 12;
@@ -2214,7 +2313,7 @@ int GB::op_ldh_a8m_a() {
 // POP HL
 // 1 12
 // - - - -
-int GB::op_pop_hl() {
+void GB::op_pop_hl() {
     uint8_t word = this->stack.pop_word();
     this->registers.set_hl(word);
     return 12;
@@ -2225,7 +2324,7 @@ int GB::op_pop_hl() {
 // 2 8
 // - - - -
 // Notes: LDH [C], A has the alternative mnemonic LD [$FF00+C], A
-int GB::op_ldh_cm_a() {
+void GB::op_ldh_cm_a() {
     uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers.C);
     this->memory.write_byte(address, this->registers.A);
     return 8;
@@ -2235,7 +2334,7 @@ int GB::op_ldh_cm_a() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_e3() {
+// void GB::op_unused_e3() {
 //     return 0;
 // }
 
@@ -2243,7 +2342,7 @@ int GB::op_ldh_cm_a() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_e4() {
+// void GB::op_unused_e4() {
 //     return 0;
 // }
 
@@ -2251,7 +2350,7 @@ int GB::op_ldh_cm_a() {
 // PUSH HL
 // 1 16
 // - - - -
-int GB::op_push_hl() {
+void GB::op_push_hl() {
     this->stack.push_word(this->registers.get_hl());
     return 16;
 }
@@ -2260,7 +2359,7 @@ int GB::op_push_hl() {
 // AND A, n8
 // 2 8
 // Z 0 1 0
-int GB::op_and_a_n8() {
+void GB::op_and_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.and_u8(value);
     return 8;
@@ -2270,7 +2369,7 @@ int GB::op_and_a_n8() {
 // RST $20
 // 1 16
 // - - - -
-int GB::op_rst_20() {
+void GB::op_rst_20() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0020;
     return 16;
@@ -2280,7 +2379,7 @@ int GB::op_rst_20() {
 // ADD SP, e8
 // 2 16
 // 0 0 H C
-int GB::op_add_sp_e8() {
+void GB::op_add_sp_e8() {
     int8_t value = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
     uint16_t sp = this->registers.SP;
     uint16_t result = static_cast<uint16_t>(static_cast<int32_t>(sp) + static_cast<int32_t>(value));
@@ -2301,7 +2400,7 @@ int GB::op_add_sp_e8() {
 // JP HL
 // 1 4
 // - - - -
-int GB::op_jp_hl() {
+void GB::op_jp_hl() {
     this->registers.PC = this->registers.get_hl();
     return 4;
 }
@@ -2310,7 +2409,7 @@ int GB::op_jp_hl() {
 // LD [a16], A
 // 3 16
 // - - - -
-int GB::op_ld_a16m_a() {
+void GB::op_ld_a16m_a() {
     this->memory.write_byte(this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1)), this->registers.A);
     return 16;
 }
@@ -2319,7 +2418,7 @@ int GB::op_ld_a16m_a() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_eb() {
+// void GB::op_unused_eb() {
 //     return 0;
 // }
 
@@ -2327,7 +2426,7 @@ int GB::op_ld_a16m_a() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_ec() {
+// void GB::op_unused_ec() {
 //     return 0;
 // }
 
@@ -2335,7 +2434,7 @@ int GB::op_ld_a16m_a() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_ed() {
+// void GB::op_unused_ed() {
 //     return 0;
 // }
 
@@ -2343,7 +2442,7 @@ int GB::op_ld_a16m_a() {
 // XOR A, n8
 // 2 8
 // Z 0 0 0
-int GB::op_xor_a_n8() {
+void GB::op_xor_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.xor_u8(value);
     return 8;
@@ -2353,7 +2452,7 @@ int GB::op_xor_a_n8() {
 // RST $28
 // 1 16
 // - - - -
-int GB::op_rst_28() {
+void GB::op_rst_28() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0028;
     return 16;
@@ -2364,7 +2463,7 @@ int GB::op_rst_28() {
 // 2 12
 // - - - -
 // Notes: a8 means 8-bit unsigned data, which is added to $FF00 in certain instructions to create a 16-bit address in HRAM (High RAM)
-int GB::op_ldh_a_a8m() {
+void GB::op_ldh_a_a8m() {
     uint16_t address = 0xFF00 + static_cast<uint16_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
     this->registers.A = this->memory.read_byte(address);
     return 12;
@@ -2374,7 +2473,7 @@ int GB::op_ldh_a_a8m() {
 // POP AF
 // 1 12
 // Z N H C
-int GB::op_pop_af() {
+void GB::op_pop_af() {
     uint16_t word = this->stack.pop_word();
     this->registers.set_af(word);
     return 12;
@@ -2385,7 +2484,7 @@ int GB::op_pop_af() {
 // 2 8
 // - - - -
 // LDH A, [C] has the alternative mnemonic LD A, [$FF00+C]
-int GB::op_ldh_a_cm() {
+void GB::op_ldh_a_cm() {
     uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers.C);
     this->registers.A = this->memory.read_byte(address);
     return 8;
@@ -2395,7 +2494,7 @@ int GB::op_ldh_a_cm() {
 // DI
 // 1 4
 // - - - -
-int GB::op_di() {
+void GB::op_di() {
     // TODO: implement DI
     return 0;
 }
@@ -2404,7 +2503,7 @@ int GB::op_di() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_f4() {
+// void GB::op_unused_f4() {
 //     return 0;
 // }
 
@@ -2412,7 +2511,7 @@ int GB::op_di() {
 // PUSH AF
 // 1 16
 // - - - -
-int GB::op_push_af() {
+void GB::op_push_af() {
     this->stack.push_word(this->registers.get_af());
     return 16;
 }
@@ -2421,7 +2520,7 @@ int GB::op_push_af() {
 // OR A, n8
 // 2 8
 // Z 0 0 0
-int GB::op_or_a_n8() {
+void GB::op_or_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.or_u8(value);
     return 8;
@@ -2431,7 +2530,7 @@ int GB::op_or_a_n8() {
 // RST $30
 // 1 16
 // - - - -
-int GB::op_rst_30() {
+void GB::op_rst_30() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0030;
     return 16;
@@ -2441,7 +2540,7 @@ int GB::op_rst_30() {
 // LD HL, SP+e8
 // 3 12
 // 0 0 H C
-int GB::op_ld_hl_sp_e8() {
+void GB::op_ld_hl_sp_e8() {
     int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
     uint16_t sp = this->registers.SP;
     uint16_t result = static_cast<uint16_t>(static_cast<int32_t>(sp) + static_cast<int32_t>(offset));
@@ -2460,7 +2559,7 @@ int GB::op_ld_hl_sp_e8() {
 // LD SP, HL
 // 1 8
 // - - - -
-int GB::op_ld_sp_hl() {
+void GB::op_ld_sp_hl() {
     this->registers.SP = this->registers.get_hl();
     return 8;
 }
@@ -2469,7 +2568,7 @@ int GB::op_ld_sp_hl() {
 // LD A, [a16]
 // 3 16
 // - - - -
-int GB::op_ld_a_a16m() {
+void GB::op_ld_a_a16m() {
     uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
     uint8_t value = this->memory.read_byte(address);
     this->registers.A = value;
@@ -2480,7 +2579,7 @@ int GB::op_ld_a_a16m() {
 // EI
 // 1 4
 // - - - -
-int GB::op_ei() {
+void GB::op_ei() {
     // TODO: implement EI
     return 0;
 }
@@ -2489,7 +2588,7 @@ int GB::op_ei() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_fc() {
+// void GB::op_unused_fc() {
 //     return 0;
 // }
 
@@ -2497,7 +2596,7 @@ int GB::op_ei() {
 // Unused opcode
 // - -
 // - - - -
-// int GB::op_unused_fd() {
+// void GB::op_unused_fd() {
 //     return 0;
 // }
 
@@ -2505,7 +2604,7 @@ int GB::op_ei() {
 // CP A, n8
 // 2 8
 // Z 1 H C
-int GB::op_cp_a_n8() {
+void GB::op_cp_a_n8() {
     uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
     this->alu.cp_u8(value);
     return 8;
@@ -2515,7 +2614,7 @@ int GB::op_cp_a_n8() {
 // RST $38
 // 1 16
 // - - - -
-int GB::op_rst_38() {
+void GB::op_rst_38() {
     this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
     this->registers.PC = 0x0038;
     return 16;

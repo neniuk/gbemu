@@ -38,7 +38,7 @@ class BMI {
     void swap_u8(uint8_t &reg);
     void swap_u8(uint16_t address);
 
-    void bit_u8(uint8_t bit, uint8_t reg);
+    void bit_u8(uint8_t bit, uint8_t &reg);
     void bit_u8(uint8_t bit, uint16_t address);
 
     void res_u8(uint8_t bit, uint8_t &reg);
