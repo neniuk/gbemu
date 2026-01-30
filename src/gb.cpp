@@ -16,7 +16,7 @@
 
 // TODO: CALL, JP, RET, RST etc. where PC is set directly, should not increment PC after opcode execution
 
-GB::GB() : stack(&registers.SP, &memory), idu(&registers, &memory), alu(&registers, &memory) {
+GB::GB() : stack(&registers.SP, &memory), idu(&registers, &memory), alu(&registers, &memory), bmi(&registers, &memory) {
     // clang-format off
     // Write startup logo to memory
     std::vector<uint8_t> logo = {
@@ -189,8 +189,15 @@ int GB::op_ld_c_n8() {
 // 1 4
 // 0 0 0 C
 int GB::op_rrca() {
-    // TODO: implement RRCA
-    return 0;
+    uint8_t old_a_in = this->registers.A & 0x01;
+    this->registers.A = static_cast<uint8_t>((this->registers.A >> 1) | (old_a_in << 7));
+
+    this->registers.set_flag_z(false);
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h(false);
+    this->registers.set_flag_c(old_a_in != 0);
+
+    return 4;
 }
 
 // 0x10
@@ -263,8 +270,16 @@ int GB::op_ld_d_n8() {
 // 1 4
 // 0 0 0 C
 int GB::op_rla() {
-    // TODO: implement RLA
-    return 0;
+    uint8_t carry_in = this->registers.get_flag_c() ? 1 : 0;
+    uint8_t new_carry = (this->registers.A & 0x80) >> 7;
+    this->registers.A = static_cast<uint8_t>((this->registers.A << 1) | carry_in);
+
+    this->registers.set_flag_z(false);
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h(false);
+    this->registers.set_flag_c(new_carry != 0);
+
+    return 4;
 }
 
 // 0x18
@@ -2430,8 +2445,18 @@ int GB::op_rst_30() {
 // 3 12
 // 0 0 H C
 int GB::op_ld_hl_sp_e8() {
-    // TODO: implement LD HL, SP+e8
-    return 0;
+    int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
+    uint16_t sp = this->registers.SP;
+    uint16_t result = static_cast<uint16_t>(static_cast<int32_t>(sp) + static_cast<int32_t>(offset));
+    this->registers.set_hl(result);
+
+    // Flags
+    this->registers.set_flag_z(false);
+    this->registers.set_flag_n(false);
+    this->registers.set_flag_h(((sp & 0x0F) + (static_cast<uint8_t>(offset) & 0x0F)) > 0x0F);
+    this->registers.set_flag_c((static_cast<uint16_t>(sp & 0xFF) + static_cast<uint8_t>(offset)) > 0xFF);
+
+    return 12;
 }
 
 // 0xf9
@@ -2762,7 +2787,7 @@ void GB::init() {
     // 0xE0 - 0xEF
     set(0xE0, &GB::op_ldh_a8m_a,    "LDH [a8], A",  2);
     set(0xE1, &GB::op_pop_hl,       "POP HL",       1);
-    set(0xE2, &GB::op_ldh_cm_a,    "LDH [C], A",    1);
+    set(0xE2, &GB::op_ldh_cm_a,    "LDH [C], A",    2);
     // set(0xE3, &GB::op_unused_e3,    "ILLEGAL (0xE3)", 1);
     // set(0xE4, &GB::op_unused_e4,    "ILLEGAL (0xE4)", 1);
     set(0xE5, &GB::op_push_hl,      "PUSH HL",      1);

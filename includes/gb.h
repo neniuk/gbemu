@@ -2,6 +2,7 @@
 #define GB_H
 
 #include "alu.h"
+#include "bmi.h"
 #include "config.h"
 #include "idu.h"
 #include "memory.h"
@@ -23,6 +24,7 @@ class GB {
     Screen screen;
     IDU idu;
     ALU alu;
+    BMI bmi;
 
     void load(const std::vector<uint8_t> &buf);
 
