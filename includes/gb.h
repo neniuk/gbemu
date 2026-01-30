@@ -1,6 +1,7 @@
 #ifndef GB_H
 #define GB_H
 
+#include "alu.h"
 #include "config.h"
 #include "idu.h"
 #include "memory.h"
@@ -21,6 +22,7 @@ class GB {
     Stack stack;
     Screen screen;
     IDU idu;
+    ALU alu;
 
     void load(const std::vector<uint8_t> &buf);
 

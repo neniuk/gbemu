@@ -1,5 +1,11 @@
 #include "gb.h"
+#include "alu.h"
 #include "config.h"
+#include "idu.h"
+#include "memory.h"
+#include "registers.h"
+#include "screen.h"
+#include "stack.h"
 
 #include <SDL2/SDL.h>
 #include <assert.h>
@@ -1230,8 +1236,8 @@ int GB::op_ld_a_a() {
 // 1 4
 // Z 0 H C
 int GB::op_add_a_b() {
-    // TODO: implement ADD A, B
-    return 0;
+    this->alu.add_u8(this->registers.B);
+    return 4;
 }
 
 // 0x81
@@ -1239,8 +1245,8 @@ int GB::op_add_a_b() {
 // 1 4
 // Z 0 H C
 int GB::op_add_a_c() {
-    // TODO: implement ADD A, C
-    return 0;
+    this->alu.add_u8(this->registers.C);
+    return 4;
 }
 
 // 0x82
@@ -1248,8 +1254,8 @@ int GB::op_add_a_c() {
 // 1 4
 // Z 0 H C
 int GB::op_add_a_d() {
-    // TODO: implement ADD A, D
-    return 0;
+    this->alu.add_u8(this->registers.D);
+    return 4;
 }
 
 // 0x83
@@ -1257,8 +1263,8 @@ int GB::op_add_a_d() {
 // 1 4
 // Z 0 H C
 int GB::op_add_a_e() {
-    // TODO: implement ADD A, E
-    return 0;
+    this->alu.add_u8(this->registers.E);
+    return 4;
 }
 
 // 0x84
@@ -1266,8 +1272,8 @@ int GB::op_add_a_e() {
 // 1 4
 // Z 0 H C
 int GB::op_add_a_h() {
-    // TODO: implement ADD A, H
-    return 0;
+    this->alu.add_u8(this->registers.H);
+    return 4;
 }
 
 // 0x85
@@ -1275,8 +1281,8 @@ int GB::op_add_a_h() {
 // 1 4
 // Z 0 H C
 int GB::op_add_a_l() {
-    // TODO: implement ADD A, L
-    return 0;
+    this->alu.add_u8(this->registers.L);
+    return 4;
 }
 
 // 0x86
@@ -1284,8 +1290,9 @@ int GB::op_add_a_l() {
 // 1 8
 // Z 0 H C
 int GB::op_add_a_hlm() {
-    // TODO: implement ADD A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.add_u8(value);
+    return 8;
 }
 
 // 0x87
@@ -1293,8 +1300,8 @@ int GB::op_add_a_hlm() {
 // 1 4
 // Z 0 H C
 int GB::op_add_a_a() {
-    // TODO: implement ADD A, A
-    return 0;
+    this->alu.add_u8(this->registers.A);
+    return 4;
 }
 
 // 0x88
@@ -1302,8 +1309,8 @@ int GB::op_add_a_a() {
 // 1 4
 // Z 0 H C
 int GB::op_adc_a_b() {
-    // TODO: implement ADC A, B
-    return 0;
+    this->alu.adc_u8(this->registers.B);
+    return 4;
 }
 
 // 0x89
@@ -1311,8 +1318,8 @@ int GB::op_adc_a_b() {
 // 1 4
 // Z 0 H C
 int GB::op_adc_a_c() {
-    // TODO: implement ADC A, C
-    return 0;
+    this->alu.adc_u8(this->registers.C);
+    return 4;
 }
 
 // 0x8a
@@ -1320,8 +1327,8 @@ int GB::op_adc_a_c() {
 // 1 4
 // Z 0 H C
 int GB::op_adc_a_d() {
-    // TODO: implement ADC A, D
-    return 0;
+    this->alu.adc_u8(this->registers.D);
+    return 4;
 }
 
 // 0x8b
@@ -1329,8 +1336,8 @@ int GB::op_adc_a_d() {
 // 1 4
 // Z 0 H C
 int GB::op_adc_a_e() {
-    // TODO: implement ADC A, E
-    return 0;
+    this->alu.adc_u8(this->registers.E);
+    return 4;
 }
 
 // 0x8c
@@ -1338,8 +1345,8 @@ int GB::op_adc_a_e() {
 // 1 4
 // Z 0 H C
 int GB::op_adc_a_h() {
-    // TODO: implement ADC A, H
-    return 0;
+    this->alu.adc_u8(this->registers.H);
+    return 4;
 }
 
 // 0x8d
@@ -1347,8 +1354,8 @@ int GB::op_adc_a_h() {
 // 1 4
 // Z 0 H C
 int GB::op_adc_a_l() {
-    // TODO: implement ADC A, L
-    return 0;
+    this->alu.adc_u8(this->registers.L);
+    return 4;
 }
 
 // 0x8e
@@ -1356,8 +1363,9 @@ int GB::op_adc_a_l() {
 // 1 8
 // Z 0 H C
 int GB::op_adc_a_hlm() {
-    // TODO: implement ADC A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.adc_u8(value);
+    return 8;
 }
 
 // 0x8f
@@ -1365,8 +1373,8 @@ int GB::op_adc_a_hlm() {
 // 1 4
 // Z 0 H C
 int GB::op_adc_a_a() {
-    // TODO: implement ADC A, A
-    return 0;
+    this->alu.adc_u8(this->registers.A);
+    return 4;
 }
 
 // 0x90
@@ -1374,8 +1382,8 @@ int GB::op_adc_a_a() {
 // 1 4
 // Z 1 H C
 int GB::op_sub_a_b() {
-    // TODO: implement SUB A, B
-    return 0;
+    this->alu.sub_u8(this->registers.B);
+    return 4;
 }
 
 // 0x91
@@ -1383,8 +1391,8 @@ int GB::op_sub_a_b() {
 // 1 4
 // Z 1 H C
 int GB::op_sub_a_c() {
-    // TODO: implement SUB A, C
-    return 0;
+    this->alu.sub_u8(this->registers.C);
+    return 4;
 }
 
 // 0x92
@@ -1392,8 +1400,8 @@ int GB::op_sub_a_c() {
 // 1 4
 // Z 1 H C
 int GB::op_sub_a_d() {
-    // TODO: implement SUB A, D
-    return 0;
+    this->alu.sub_u8(this->registers.D);
+    return 4;
 }
 
 // 0x93
@@ -1401,8 +1409,8 @@ int GB::op_sub_a_d() {
 // 1 4
 // Z 1 H C
 int GB::op_sub_a_e() {
-    // TODO: implement SUB A, E
-    return 0;
+    this->alu.sub_u8(this->registers.E);
+    return 4;
 }
 
 // 0x94
@@ -1410,8 +1418,8 @@ int GB::op_sub_a_e() {
 // 1 4
 // Z 1 H C
 int GB::op_sub_a_h() {
-    // TODO: implement SUB A, H
-    return 0;
+    this->alu.sub_u8(this->registers.H);
+    return 4;
 }
 
 // 0x95
@@ -1419,8 +1427,8 @@ int GB::op_sub_a_h() {
 // 1 4
 // Z 1 H C
 int GB::op_sub_a_l() {
-    // TODO: implement SUB A, L
-    return 0;
+    this->alu.sub_u8(this->registers.L);
+    return 4;
 }
 
 // 0x96
@@ -1428,8 +1436,9 @@ int GB::op_sub_a_l() {
 // 1 8
 // Z 1 H C
 int GB::op_sub_a_hlm() {
-    // TODO: implement SUB A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.sub_u8(value);
+    return 8;
 }
 
 // 0x97
@@ -1437,8 +1446,8 @@ int GB::op_sub_a_hlm() {
 // 1 4
 // Z 1 H C
 int GB::op_sub_a_a() {
-    // TODO: implement SUB A, A
-    return 0;
+    this->alu.sub_u8(this->registers.A);
+    return 4;
 }
 
 // 0x98
@@ -1446,8 +1455,8 @@ int GB::op_sub_a_a() {
 // 1 4
 // Z 1 H C
 int GB::op_sbc_a_b() {
-    // TODO: implement SBC A, B
-    return 0;
+    this->alu.sbc_u8(this->registers.B);
+    return 4;
 }
 
 // 0x99
@@ -1455,8 +1464,8 @@ int GB::op_sbc_a_b() {
 // 1 4
 // Z 1 H C
 int GB::op_sbc_a_c() {
-    // TODO: implement SBC A, C
-    return 0;
+    this->alu.sbc_u8(this->registers.C);
+    return 4;
 }
 
 // 0x9a
@@ -1464,8 +1473,8 @@ int GB::op_sbc_a_c() {
 // 1 4
 // Z 1 H C
 int GB::op_sbc_a_d() {
-    // TODO: implement SBC A, D
-    return 0;
+    this->alu.sbc_u8(this->registers.D);
+    return 4;
 }
 
 // 0x9b
@@ -1473,8 +1482,8 @@ int GB::op_sbc_a_d() {
 // 1 4
 // Z 1 H C
 int GB::op_sbc_a_e() {
-    // TODO: implement SBC A, E
-    return 0;
+    this->alu.sbc_u8(this->registers.E);
+    return 4;
 }
 
 // 0x9c
@@ -1482,8 +1491,8 @@ int GB::op_sbc_a_e() {
 // 1 4
 // Z 1 H C
 int GB::op_sbc_a_h() {
-    // TODO: implement SBC A, H
-    return 0;
+    this->alu.sbc_u8(this->registers.H);
+    return 4;
 }
 
 // 0x9d
@@ -1491,8 +1500,8 @@ int GB::op_sbc_a_h() {
 // 1 4
 // Z 1 H C
 int GB::op_sbc_a_l() {
-    // TODO: implement SBC A, L
-    return 0;
+    this->alu.sbc_u8(this->registers.L);
+    return 4;
 }
 
 // 0x9e
@@ -1500,8 +1509,9 @@ int GB::op_sbc_a_l() {
 // 1 8
 // Z 1 H C
 int GB::op_sbc_a_hlm() {
-    // TODO: implement SBC A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.sbc_u8(value);
+    return 8;
 }
 
 // 0x9f
@@ -1509,8 +1519,8 @@ int GB::op_sbc_a_hlm() {
 // 1 4
 // Z 1 H C
 int GB::op_sbc_a_a() {
-    // TODO: implement SBC A, A
-    return 0;
+    this->alu.sbc_u8(this->registers.A);
+    return 4;
 }
 
 // 0xa0
@@ -1518,8 +1528,8 @@ int GB::op_sbc_a_a() {
 // 1 4
 // Z 0 1 0
 int GB::op_and_a_b() {
-    // TODO: implement AND A, B
-    return 0;
+    this->alu.and_u8(this->registers.B);
+    return 4;
 }
 
 // 0xa1
@@ -1527,8 +1537,8 @@ int GB::op_and_a_b() {
 // 1 4
 // Z 0 1 0
 int GB::op_and_a_c() {
-    // TODO: implement AND A, C
-    return 0;
+    this->alu.and_u8(this->registers.C);
+    return 4;
 }
 
 // 0xa2
@@ -1536,8 +1546,8 @@ int GB::op_and_a_c() {
 // 1 4
 // Z 0 1 0
 int GB::op_and_a_d() {
-    // TODO: implement AND A, D
-    return 0;
+    this->alu.and_u8(this->registers.D);
+    return 4;
 }
 
 // 0xa3
@@ -1545,8 +1555,8 @@ int GB::op_and_a_d() {
 // 1 4
 // Z 0 1 0
 int GB::op_and_a_e() {
-    // TODO: implement AND A, E
-    return 0;
+    this->alu.and_u8(this->registers.E);
+    return 4;
 }
 
 // 0xa4
@@ -1554,8 +1564,8 @@ int GB::op_and_a_e() {
 // 1 4
 // Z 0 1 0
 int GB::op_and_a_h() {
-    // TODO: implement AND A, H
-    return 0;
+    this->alu.and_u8(this->registers.H);
+    return 4;
 }
 
 // 0xa5
@@ -1563,8 +1573,8 @@ int GB::op_and_a_h() {
 // 1 4
 // Z 0 1 0
 int GB::op_and_a_l() {
-    // TODO: implement AND A, L
-    return 0;
+    this->alu.and_u8(this->registers.L);
+    return 4;
 }
 
 // 0xa6
@@ -1572,8 +1582,9 @@ int GB::op_and_a_l() {
 // 1 8
 // Z 0 1 0
 int GB::op_and_a_hlm() {
-    // TODO: implement AND A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.and_u8(value);
+    return 8;
 }
 
 // 0xa7
@@ -1581,8 +1592,8 @@ int GB::op_and_a_hlm() {
 // 1 4
 // Z 0 1 0
 int GB::op_and_a_a() {
-    // TODO: implement AND A, A
-    return 0;
+    this->alu.and_u8(this->registers.A);
+    return 4;
 }
 
 // 0xa8
@@ -1590,8 +1601,8 @@ int GB::op_and_a_a() {
 // 1 4
 // Z 0 0 0
 int GB::op_xor_a_b() {
-    // TODO: implement XOR A, B
-    return 0;
+    this->alu.xor_u8(this->registers.B);
+    return 4;
 }
 
 // 0xa9
@@ -1599,8 +1610,8 @@ int GB::op_xor_a_b() {
 // 1 4
 // Z 0 0 0
 int GB::op_xor_a_c() {
-    // TODO: implement XOR A, C
-    return 0;
+    this->alu.xor_u8(this->registers.C);
+    return 4;
 }
 
 // 0xaa
@@ -1608,8 +1619,8 @@ int GB::op_xor_a_c() {
 // 1 4
 // Z 0 0 0
 int GB::op_xor_a_d() {
-    // TODO: implement XOR A, D
-    return 0;
+    this->alu.xor_u8(this->registers.D);
+    return 4;
 }
 
 // 0xab
@@ -1617,8 +1628,8 @@ int GB::op_xor_a_d() {
 // 1 4
 // Z 0 0 0
 int GB::op_xor_a_e() {
-    // TODO: implement XOR A, E
-    return 0;
+    this->alu.xor_u8(this->registers.E);
+    return 4;
 }
 
 // 0xac
@@ -1626,8 +1637,8 @@ int GB::op_xor_a_e() {
 // 1 4
 // Z 0 0 0
 int GB::op_xor_a_h() {
-    // TODO: implement XOR A, H
-    return 0;
+    this->alu.xor_u8(this->registers.H);
+    return 4;
 }
 
 // 0xad
@@ -1635,8 +1646,8 @@ int GB::op_xor_a_h() {
 // 1 4
 // Z 0 0 0
 int GB::op_xor_a_l() {
-    // TODO: implement XOR A, L
-    return 0;
+    this->alu.xor_u8(this->registers.L);
+    return 4;
 }
 
 // 0xae
@@ -1644,8 +1655,9 @@ int GB::op_xor_a_l() {
 // 1 8
 // Z 0 0 0
 int GB::op_xor_a_hlm() {
-    // TODO: implement XOR A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.xor_u8(value);
+    return 8;
 }
 
 // 0xaf
@@ -1653,8 +1665,8 @@ int GB::op_xor_a_hlm() {
 // 1 4
 // Z 0 0 0
 int GB::op_xor_a_a() {
-    // TODO: implement XOR A, A
-    return 0;
+    this->alu.xor_u8(this->registers.A);
+    return 4;
 }
 
 // 0xb0
@@ -1662,8 +1674,8 @@ int GB::op_xor_a_a() {
 // 1 4
 // Z 0 0 0
 int GB::op_or_a_b() {
-    // TODO: implement OR A, B
-    return 0;
+    this->alu.or_u8(this->registers.B);
+    return 4;
 }
 
 // 0xb1
@@ -1671,8 +1683,8 @@ int GB::op_or_a_b() {
 // 1 4
 // Z 0 0 0
 int GB::op_or_a_c() {
-    // TODO: implement OR A, C
-    return 0;
+    this->alu.or_u8(this->registers.C);
+    return 4;
 }
 
 // 0xb2
@@ -1680,8 +1692,8 @@ int GB::op_or_a_c() {
 // 1 4
 // Z 0 0 0
 int GB::op_or_a_d() {
-    // TODO: implement OR A, D
-    return 0;
+    this->alu.or_u8(this->registers.D);
+    return 4;
 }
 
 // 0xb3
@@ -1689,8 +1701,8 @@ int GB::op_or_a_d() {
 // 1 4
 // Z 0 0 0
 int GB::op_or_a_e() {
-    // TODO: implement OR A, E
-    return 0;
+    this->alu.or_u8(this->registers.E);
+    return 4;
 }
 
 // 0xb4
@@ -1698,8 +1710,8 @@ int GB::op_or_a_e() {
 // 1 4
 // Z 0 0 0
 int GB::op_or_a_h() {
-    // TODO: implement OR A, H
-    return 0;
+    this->alu.or_u8(this->registers.H);
+    return 4;
 }
 
 // 0xb5
@@ -1707,8 +1719,8 @@ int GB::op_or_a_h() {
 // 1 4
 // Z 0 0 0
 int GB::op_or_a_l() {
-    // TODO: implement OR A, L
-    return 0;
+    this->alu.or_u8(this->registers.L);
+    return 4;
 }
 
 // 0xb6
@@ -1716,8 +1728,9 @@ int GB::op_or_a_l() {
 // 1 8
 // Z 0 0 0
 int GB::op_or_a_hlm() {
-    // TODO: implement OR A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.or_u8(value);
+    return 8;
 }
 
 // 0xb7
@@ -1725,8 +1738,8 @@ int GB::op_or_a_hlm() {
 // 1 4
 // Z 0 0 0
 int GB::op_or_a_a() {
-    // TODO: implement OR A, A
-    return 0;
+    this->alu.or_u8(this->registers.A);
+    return 4;
 }
 
 // 0xb8
@@ -1734,8 +1747,8 @@ int GB::op_or_a_a() {
 // 1 4
 // Z 1 H C
 int GB::op_cp_a_b() {
-    // TODO: implement CP A, B
-    return 0;
+    this->alu.cp_u8(this->registers.B);
+    return 4;
 }
 
 // 0xb9
@@ -1743,8 +1756,8 @@ int GB::op_cp_a_b() {
 // 1 4
 // Z 1 H C
 int GB::op_cp_a_c() {
-    // TODO: implement CP A, C
-    return 0;
+    this->alu.cp_u8(this->registers.C);
+    return 4;
 }
 
 // 0xba
@@ -1752,8 +1765,8 @@ int GB::op_cp_a_c() {
 // 1 4
 // Z 1 H C
 int GB::op_cp_a_d() {
-    // TODO: implement CP A, D
-    return 0;
+    this->alu.cp_u8(this->registers.D);
+    return 4;
 }
 
 // 0xbb
@@ -1761,8 +1774,8 @@ int GB::op_cp_a_d() {
 // 1 4
 // Z 1 H C
 int GB::op_cp_a_e() {
-    // TODO: implement CP A, E
-    return 0;
+    this->alu.cp_u8(this->registers.E);
+    return 4;
 }
 
 // 0xbc
@@ -1770,8 +1783,8 @@ int GB::op_cp_a_e() {
 // 1 4
 // Z 1 H C
 int GB::op_cp_a_h() {
-    // TODO: implement CP A, H
-    return 0;
+    this->alu.cp_u8(this->registers.H);
+    return 4;
 }
 
 // 0xbd
@@ -1779,17 +1792,8 @@ int GB::op_cp_a_h() {
 // 1 4
 // Z 1 H C
 int GB::op_cp_a_l() {
-    uint8_t a = this->registers.A;
-    uint8_t r8 = this->registers.L;
-    uint8_t result = a - r8;
-
-    // Flags
-    this->registers.set_flag_z(result == 0);
-    this->registers.set_flag_n(true);
-    this->registers.set_flag_h((a & 0x0F) < (r8 & 0x0F));
-    this->registers.set_flag_c(r8 > a);
-
-    return 0;
+    this->alu.cp_u8(this->registers.L);
+    return 4;
 }
 
 // 0xbe
@@ -1797,8 +1801,9 @@ int GB::op_cp_a_l() {
 // 1 8
 // Z 1 H C
 int GB::op_cp_a_hlm() {
-    // TODO: implement CP A, [HL]
-    return 0;
+    uint8_t value = this->memory.read_byte(this->registers.get_hl());
+    this->alu.cp_u8(value);
+    return 8;
 }
 
 // 0xbf
@@ -1806,8 +1811,12 @@ int GB::op_cp_a_hlm() {
 // 1 4
 // 1 1 0 0
 int GB::op_cp_a_a() {
-    // TODO: implement CP A, A
-    return 0;
+    this->alu.cp_u8(this->registers.A);
+    this->registers.set_flag_z(true);
+    this->registers.set_flag_n(true);
+    this->registers.set_flag_h(false);
+    this->registers.set_flag_c(false);
+    return 4;
 }
 
 // 0xc0
@@ -1875,8 +1884,9 @@ int GB::op_push_bc() {
 // 2 8
 // Z 0 H C
 int GB::op_add_a_n8() {
-    // TODO: implement ADD A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.add_u8(value);
+    return 8;
 }
 
 // 0xc7
@@ -1958,8 +1968,9 @@ int GB::op_call_a16() {
 // 2 8
 // Z 0 H C
 int GB::op_adc_a_n8() {
-    // TODO: implement ADC A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.adc_u8(value);
+    return 8;
 }
 
 // 0xcf
@@ -2035,8 +2046,9 @@ int GB::op_push_de() {
 // 2 8
 // Z 1 H C
 int GB::op_sub_a_n8() {
-    // TODO: implement SUB A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.sub_u8(value);
+    return 8;
 }
 
 // 0xd7
@@ -2110,8 +2122,9 @@ int GB::op_call_c_a16() {
 // 2 8
 // Z 1 H C
 int GB::op_sbc_a_n8() {
-    // TODO: implement SBC A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.sbc_u8(value);
+    return 8;
 }
 
 // 0xdf
@@ -2186,8 +2199,9 @@ int GB::op_push_hl() {
 // 2 8
 // Z 0 1 0
 int GB::op_and_a_n8() {
-    // TODO: implement AND A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.and_u8(value);
+    return 8;
 }
 
 // 0xe7
@@ -2256,8 +2270,9 @@ int GB::op_ld_a16m_a() {
 // 2 8
 // Z 0 0 0
 int GB::op_xor_a_n8() {
-    // TODO: implement XOR A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.xor_u8(value);
+    return 8;
 }
 
 // 0xef
@@ -2333,8 +2348,9 @@ int GB::op_push_af() {
 // 2 8
 // Z 0 0 0
 int GB::op_or_a_n8() {
-    // TODO: implement OR A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.or_u8(value);
+    return 8;
 }
 
 // 0xf7
@@ -2404,8 +2420,9 @@ int GB::op_ei() {
 // 2 8
 // Z 1 H C
 int GB::op_cp_a_n8() {
-    // TODO: implement CP A, n8
-    return 0;
+    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    this->alu.cp_u8(value);
+    return 8;
 }
 
 // 0xff

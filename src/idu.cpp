@@ -4,10 +4,7 @@
 
 #include <stdint.h>
 
-IDU::IDU(Registers *registers, Memory *memory) {
-    this->registers = registers;
-    this->memory = memory;
-}
+IDU::IDU(Registers *registers, Memory *memory) : registers(registers), memory(memory) {}
 
 void IDU::increment_r8(uint8_t &register_8) {
     uint8_t result = static_cast<uint8_t>(register_8 + 1);
