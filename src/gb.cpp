@@ -163,7 +163,7 @@ void GB::run() {
             dots += dots_advanced;
 
             // Tick hardware
-            // this->ppu.tick(dots_advanced);
+            this->ppu.tick(dots_advanced);
             this->timer.tick(dots_advanced); // DIV, TIMA, TMA, TAC
             // this->dma.tick(dots_advanced);
             // this->serial.tick(dots_advanced);
