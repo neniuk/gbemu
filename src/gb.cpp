@@ -11,8 +11,10 @@
 #include <unordered_map>
 #include <fstream>
 #include <iostream>
+#include <thread>
+#include <chrono>
 
-GB::GB() : stack(registers.SP, memory), idu(registers, memory), alu(registers, memory), bmi(registers, memory), ppu(registers, memory), cpu(registers, memory, stack, idu, alu, bmi, ppu) {};
+GB::GB() : stack(registers.SP, memory), idu(registers, memory), alu(registers, memory), bmi(registers, memory), ppu(registers, memory, screen), cpu(registers, memory, stack, idu, alu, bmi, ppu) {};
 
 CartridgeInfo GB::read_cartridge_header() {
     std::vector<uint8_t> entry_point = this->memory.read_range(0x0100, 0x0103);
@@ -73,6 +75,7 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
 
     std::cout << "Cartridge Title: " << cartridge_info.title << '\n'
               << "Licensee: " << cartridge_info.licensee << '\n'
+              << "Supports SGB: " << (cartridge_info.supports_sgb ? "Yes" : "No") << '\n'
               << "Cartridge Type: " << cartridge_info.cartridge_type << '\n'
               << "ROM Size (KB): " << cartridge_info.rom_size_kb << '\n'
               << "ROM Banks: " << cartridge_info.num_rom_banks << '\n'
@@ -82,8 +85,91 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
               << "Header Checksum: " << static_cast<int>(cartridge_info.header_checksum) << '\n'
               << "Global Checksum: " << cartridge_info.global_checksum << '\n';
 
-    // TODO:
+    // Start SDL window
+    SDL_Init(SDL_INIT_EVERYTHING);
+
+    // // Setup audio
+    // bool is_playing = false;
+    // SDL_AudioSpec want, have;
+    // SDL_zero(want);
+    // want.freq = 44100;
+    // want.format = AUDIO_S16SYS;
+    // want.channels = 1;
+    // want.samples = 1024;
+    // want.callback = play;
+    // want.userdata = &is_playing;
+
+    // SDL_AudioDeviceID audio = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+
+    // if (audio == 0) printf("[WARNING] main > Failed to open audio device: %s\n", SDL_GetError());
+
+    // if (audio != 0) {
+    //     SDL_PauseAudioDevice(audio, 0);
+    //     if (debug_flag) {
+    //         printf("[DEBUG] main > Audio device with: freq=%d, format=%d, channels=%d, samples=%d\n", have.freq,
+    //                have.format, have.channels, have.samples);
+    //     }
+    // }
+
+    // Setup window
+    // clang-format off
+    SDL_Window *window = SDL_CreateWindow(
+        GB_WINDOW_TITLE,
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED, 
+        GB_SCREEN_WIDTH * GB_SCREEN_SCALE,
+        GB_SCREEN_HEIGHT * GB_SCREEN_SCALE,
+        SDL_WINDOW_SHOWN
+    );
+    // clang-format on
+
+    SDL_Renderer *renderer =
+        SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
+    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+                                            GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+
+    // SDL_RenderSetLogicalSize(renderer, GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+    // SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
+
+    this->screen.set_renderer(renderer);
+    this->screen.set_texture(texture);
+
+    // if (debug_flag) {
+    //     printf("[DEBUG] main > Window and renderer initialized\n");
+    // }
+
+    this->screen.draw_logo(cartridge_info.logo);
+    this->screen.present();
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    this->screen.clear();
+    this->screen.present();
+
+    this->registers.PC = 0x0100; // Entrypoint
+    // this->run();
 };
+
+void GB::run() {
+    while (true) {
+        int dots = 0;
+        int target = 70224;
+        while (dots < target) {
+            const uint32_t t_states = this->cpu.step();
+            int dots_advanced = t_states;
+            dots += dots_advanced;
+
+            // Tick hardware
+            // this->ppu.tick(dots_advanced);
+            // this->timer.tick(dots_advanced);
+            // this->dma.tick(dots_advanced);
+            // this->serial.tick(dots_advanced);
+            // this->joypad.tick(dots_advanced);
+
+            this->cpu.service_interrupts();
+        }
+        this->screen.present();
+    }
+}
 
 const std::unordered_map<uint8_t, std::string> GB::cartridge_types = {
     {0x00, "ROM ONLY"},

@@ -48,6 +48,7 @@ class GB {
 
     CartridgeInfo read_cartridge_header();
     void boot(std::vector<uint8_t> &rom_buf);
+    void run();
 
   private:
     Memory memory;

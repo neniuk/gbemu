@@ -150,3 +150,17 @@ std::vector<uint8_t> Memory::read_range(size_t start, size_t end) {
         out.push_back(read_byte(uint16_t(a)));
     return out;
 }
+
+uint8_t Memory::get_ie() {
+    return this->read_byte(0xFFFF);
+}
+void Memory::set_ie(uint8_t value) {
+    this->write_byte(0xFFFF, value);
+}
+
+uint8_t Memory::get_if() {
+    return this->read_byte(0xFF0F);
+}
+void Memory::set_if(uint8_t value) {
+    this->write_byte(0xFF0F, value);
+}

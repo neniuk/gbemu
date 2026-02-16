@@ -21,6 +21,12 @@ class Memory {
     void write_range(size_t start, const std::vector<uint8_t> &data);
     std::vector<uint8_t> read_range(size_t start, size_t end);
 
+    uint8_t get_ie();
+    void set_ie(uint8_t value);
+
+    uint8_t get_if();
+    void set_if(uint8_t value);
+
   private:
     std::vector<uint8_t> rom_;
     std::vector<uint8_t> eram_;

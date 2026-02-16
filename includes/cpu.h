@@ -17,8 +17,12 @@ class CPU {
   public:
     CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu, BMI &bmi, PPU &ppu);
 
+    uint32_t step();
+
     void exec(uint8_t opcode);
     void exec_cb(uint8_t cb);
+
+    void service_interrupts();
 
   private:
     Registers &registers;

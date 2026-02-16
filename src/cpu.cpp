@@ -18,10 +18,52 @@
 
 CPU::CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu, BMI &bmi, PPU &ppu) : registers(registers), memory(memory), stack(stack), idu(idu), alu(alu), bmi(bmi), ppu(ppu) {}
 
+uint32_t CPU::step() {
+    if (this->halted || this->stopped) {
+        this->tstates += 4;
+        return 4;
+    }
+
+    const uint64_t before = this->tstates;
+
+    uint8_t opcode = this->memory.read_byte(this->registers.PC);
+    this->exec(opcode);
+
+    return static_cast<uint32_t>(this->tstates - before);
+}
+
 void CPU::exec(uint8_t opcode) {
     OpInfo op_info = this->ops[opcode];
     (this->*op_info.fn)();
 }
+
+void CPU::service_interrupts() {
+    const uint8_t IE = this->memory.get_ie();
+    const uint8_t IF = this->memory.get_if();
+
+    if ((IE & IF) == 0) return;
+    this->halted = false;
+
+    if (!this->registers.IME) return;
+    this->registers.IME = false;
+
+    auto service = [&](uint8_t bit, uint16_t vector) -> bool {
+        if (((IE & IF) & (1u << bit)) == 0) return false; // Not requested / enabled
+        this->memory.write_byte(0xFF0F, static_cast<uint8_t>(IF & ~(1u << bit))); // Clear IF bit
+
+        this->stack.push_word(this->registers.PC);
+        this->registers.PC = vector;
+
+        this->tstates += 20;
+        return true;
+    };
+
+    if (service(0, 0x0040)) return; // VBlank
+    if (service(1, 0x0048)) return; // STAT
+    if (service(2, 0x0050)) return; // Timer
+    if (service(3, 0x0058)) return; // Serial
+    if (service(4, 0x0060)) return; // Joypad
+};
 
 // default unimplemented opcode handler =======
 void CPU::op_unimplemented() {
@@ -2403,9 +2445,9 @@ void CPU::op_ret_c() {
 // 1 16
 // - - - -
 void CPU::op_reti() {
-    // For now, implement as RET (pop PC) and add cycles
     uint16_t address = this->stack.pop_word();
     this->registers.PC = address;
+    this->registers.IME = true;
     this->tstates += 16;
 }
 
