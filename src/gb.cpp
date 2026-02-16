@@ -129,8 +129,8 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                             GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
 
-    // SDL_RenderSetLogicalSize(renderer, GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
-    // SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
+    SDL_RenderSetLogicalSize(renderer, GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+    SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
 
     this->screen.set_renderer(renderer);
     this->screen.set_texture(texture);
