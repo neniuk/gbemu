@@ -17,8 +17,11 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    const char *filename = argv[1];
-    std::vector<uint8_t> file_buf = read_file(filename);
+    const char *rom_filename = argv[1];
+    std::vector<uint8_t> rom_buf = read_file(rom_filename);
+
+    GB gb;
+    gb.boot(rom_buf);
 
     return 0;
 }

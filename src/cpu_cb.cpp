@@ -1,8 +1,8 @@
-#include "gb.h"
+#include "cpu.h"
 
 #include <stdint.h>
 
-void GB::exec_cb(uint8_t exec_cb) {
+void CPU::exec_cb(uint8_t exec_cb) {
     uint8_t octal_last_digit = exec_cb & 0b111;
     uint8_t octal_first_two_digits = (exec_cb >> 3) & 0b11111;
 

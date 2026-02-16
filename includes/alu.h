@@ -10,7 +10,7 @@
 
 class ALU {
   public:
-    ALU(Registers *registers, Memory *memory);
+    ALU(Registers &registers, Memory &memory);
 
     void add_u8(uint8_t val);
     void adc_u8(uint8_t val);
@@ -27,8 +27,8 @@ class ALU {
     void cp_u8(uint8_t val);
 
   private:
-    Registers *registers;
-    Memory *memory;
+    Registers &registers;
+    Memory &memory;
 };
 
 #endif

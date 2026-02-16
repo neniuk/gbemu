@@ -9,7 +9,7 @@
 
 class Stack {
   public:
-    Stack(uint16_t *SP, Memory *memory);
+    Stack(uint16_t &SP, Memory &memory);
 
     void push_byte(uint8_t value);
     uint8_t pop_byte();
@@ -18,8 +18,8 @@ class Stack {
     uint16_t pop_word();
 
   private:
-    uint16_t *SP;
-    Memory *memory;
+    uint16_t &SP;
+    Memory &memory;
 };
 
 #endif

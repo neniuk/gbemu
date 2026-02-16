@@ -10,7 +10,7 @@
 
 class IDU {
   public:
-    IDU(Registers *registers, Memory *memory);
+    IDU(Registers &registers, Memory &memory);
 
     void increment_r8(uint8_t &register_8);
     void decrement_r8(uint8_t &register_8);
@@ -19,8 +19,8 @@ class IDU {
     void decrement_mem8(uint16_t address);
 
   private:
-    Registers *registers;
-    Memory *memory;
+    Registers &registers;
+    Memory &memory;
 };
 
 #endif

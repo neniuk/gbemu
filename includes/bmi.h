@@ -10,7 +10,7 @@
 
 class BMI {
   public:
-    BMI(Registers *registers, Memory *memory);
+    BMI(Registers &registers, Memory &memory);
 
     void rla();
     void rlca();
@@ -48,8 +48,8 @@ class BMI {
     void set_u8(uint8_t bit, uint16_t address);
 
   private:
-    Registers *registers;
-    Memory *memory;
+    Registers &registers;
+    Memory &memory;
 };
 
 #endif
