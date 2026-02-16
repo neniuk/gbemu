@@ -24,6 +24,9 @@ class CPU {
 
     void service_interrupts();
 
+    bool stopped = false;
+    bool halted = false;
+
   private:
     Registers &registers;
     Memory &memory;
@@ -34,8 +37,6 @@ class CPU {
     PPU &ppu;
 
     uint64_t tstates = 0;
-    bool stopped = false;
-    bool halted = false;
 
     using OpFn = void (CPU::*)();
 

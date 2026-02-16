@@ -109,8 +109,12 @@ void Memory::write_byte(uint16_t a, uint8_t v) {
     }
 
     if (a >= 0xFF00 && a <= 0xFF7F) {
+        if (a == 0xFF04) {
+            // Writing any value to DIV resets it to 0
+            io_[a - 0xFF00] = 0;
+            return;
+        }
         io_[a - 0xFF00] = v;
-
         return;
     }
 

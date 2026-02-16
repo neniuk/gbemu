@@ -11,6 +11,7 @@
 #include "stack.h"
 #include "ppu.h"
 #include "cpu.h"
+#include "timer.h"
 
 #include <array>
 #include <stdbool.h>
@@ -60,6 +61,7 @@ class GB {
     BMI bmi;
     PPU ppu;
     CPU cpu;
+    Timer timer;
 
     static const std::unordered_map<uint8_t, std::string> cartridge_types;
     static const std::unordered_map<uint8_t, std::string> old_licensees;

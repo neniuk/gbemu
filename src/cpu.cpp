@@ -266,6 +266,7 @@ void CPU::op_rrca() {
 // - - - -
 void CPU::op_stop_n8() {
     this->stopped = true;
+    this->memory.write_byte(0xFF04, 0x00); // reset DIV register
 
     this->registers.PC += 2;
     this->tstates += 4;

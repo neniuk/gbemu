@@ -14,7 +14,7 @@
 #include <thread>
 #include <chrono>
 
-GB::GB() : stack(registers.SP, memory), idu(registers, memory), alu(registers, memory), bmi(registers, memory), ppu(registers, memory, screen), cpu(registers, memory, stack, idu, alu, bmi, ppu) {};
+GB::GB() : stack(registers.SP, memory), idu(registers, memory), alu(registers, memory), bmi(registers, memory), ppu(registers, memory, screen), cpu(registers, memory, stack, idu, alu, bmi, ppu), timer(registers, memory, cpu.stopped) {};
 
 CartridgeInfo GB::read_cartridge_header() {
     std::vector<uint8_t> entry_point = this->memory.read_range(0x0100, 0x0103);
@@ -84,6 +84,10 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
               << "Game Version: " << static_cast<int>(cartridge_info.game_version) << '\n'
               << "Header Checksum: " << static_cast<int>(cartridge_info.header_checksum) << '\n'
               << "Global Checksum: " << cartridge_info.global_checksum << '\n';
+
+    if (cartridge_info.rom_size_kb > 32 || cartridge_info.ram_size_kb > 0) {
+        throw std::runtime_error("Unsupported cartridge type or RAM size");
+    }
 
     // Start SDL window
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -160,7 +164,7 @@ void GB::run() {
 
             // Tick hardware
             // this->ppu.tick(dots_advanced);
-            // this->timer.tick(dots_advanced);
+            this->timer.tick(dots_advanced); // DIV, TIMA, TMA, TAC
             // this->dma.tick(dots_advanced);
             // this->serial.tick(dots_advanced);
             // this->joypad.tick(dots_advanced);
