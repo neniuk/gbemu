@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <vector>
 
+class Joypad;
+
 class Memory {
   public:
     Memory(uint8_t initial_value = 0);
@@ -27,6 +29,8 @@ class Memory {
 
     uint8_t get_if();
     void set_if(uint8_t value);
+
+    void attach_joypad(Joypad *joypad);
 
     void set_vram_blocked(bool blocked);
     void set_oam_blocked(bool blocked);
@@ -54,6 +58,8 @@ class Memory {
     bool oam_blocked_ = false;
     bool dma_request_pending_ = false;
     uint8_t dma_source_high_ = 0;
+
+    Joypad *joypad_ = nullptr;
 };
 
 #endif

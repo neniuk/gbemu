@@ -22,6 +22,11 @@ CPU::CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu,
 }
 
 uint32_t CPU::step() {
+    const uint8_t pending = static_cast<uint8_t>(this->memory.get_ie() & this->memory.get_if() & 0x1F);
+    if (this->stopped && pending != 0) {
+        this->stopped = false;
+    }
+
     if (this->halted || this->stopped) {
         this->tstates += 4;
         return 4;
@@ -30,7 +35,20 @@ uint32_t CPU::step() {
     const uint64_t before = this->tstates;
 
     uint8_t opcode = this->memory.read_byte(this->registers.PC);
+    if (this->halt_bug_active) {
+        // HALT bug: one instruction executes with opcode fetch but without PC increment.
+        this->registers.PC = static_cast<uint16_t>(this->registers.PC - 1);
+        this->halt_bug_active = false;
+    }
     this->exec(opcode);
+
+    // EI enables IME after the following instruction.
+    if (this->ime_enable_delay > 0) {
+        this->ime_enable_delay -= 1;
+        if (this->ime_enable_delay == 0) {
+            this->registers.IME = true;
+        }
+    }
 
     return static_cast<uint32_t>(this->tstates - before);
 }
@@ -46,6 +64,7 @@ void CPU::service_interrupts() {
 
     if ((IE & IF) == 0) return;
     this->halted = false;
+    this->stopped = false;
 
     if (!this->registers.IME) return;
     this->registers.IME = false;
@@ -1380,7 +1399,15 @@ void CPU::op_ld_hlm_l() {
 // 1 4
 // - - - -
 void CPU::op_halt() {
-    this->halted = true;
+    const uint8_t pending = static_cast<uint8_t>(this->memory.get_ie() & this->memory.get_if() & 0x1F);
+
+    // HALT bug case: IME=0 and an interrupt is pending.
+    // CPU does not actually enter halted state.
+    if (this->registers.IME == false && pending != 0) {
+        this->halt_bug_active = true;
+    } else {
+        this->halted = true;
+    }
     this->registers.PC += 1;
     this->tstates += 4;
 }
@@ -2736,6 +2763,8 @@ void CPU::op_ldh_a_cm() {
 // - - - -
 void CPU::op_di() {
     this->registers.IME = false;
+    this->ime_enable_delay = 0;
+    this->halt_bug_active = false;
     this->registers.PC += 1;
     this->tstates += 4;
 }
@@ -2826,7 +2855,7 @@ void CPU::op_ld_a_a16m() {
 // 1 4
 // - - - -
 void CPU::op_ei() {
-    this->registers.IME = true;
+    this->ime_enable_delay = 2;
     this->registers.PC += 1;
     this->tstates += 4;
 }

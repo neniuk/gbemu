@@ -37,6 +37,8 @@ class CPU {
     PPU &ppu;
 
     uint64_t tstates = 0;
+    uint8_t ime_enable_delay = 0;
+    bool halt_bug_active = false;
 
     using OpFn = void (CPU::*)();
 

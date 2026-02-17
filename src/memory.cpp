@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "joypad.h"
 
 #include <algorithm>
 
@@ -63,6 +64,9 @@ uint8_t Memory::read_byte_impl(uint16_t a, bool respect_locks) const {
 
     // 0xFF00-0xFF7F: I/O registers (later: dispatch to joypad/timer/apu/ppu/etc)
     if (a >= 0xFF00 && a <= 0xFF7F) {
+        if (a == 0xFF00 && this->joypad_ != nullptr) {
+            return this->joypad_->get_joyp();
+        }
         return io_[a - 0xFF00];
     }
 
@@ -117,6 +121,11 @@ void Memory::write_byte(uint16_t a, uint8_t v) {
     }
 
     if (a >= 0xFF00 && a <= 0xFF7F) {
+        if (a == 0xFF00 && this->joypad_ != nullptr) {
+            this->joypad_->set_joyp(v);
+            io_[a - 0xFF00] = v;
+            return;
+        }
         if (a == 0xFF04) {
             // Writing any value to DIV resets it to 0
             io_[a - 0xFF00] = 0;
@@ -172,6 +181,8 @@ void Memory::set_ie(uint8_t value) { this->write_byte(0xFFFF, value); }
 
 uint8_t Memory::get_if() { return this->read_byte(0xFF0F); }
 void Memory::set_if(uint8_t value) { this->write_byte(0xFF0F, value); }
+
+void Memory::attach_joypad(Joypad *joypad) { this->joypad_ = joypad; }
 
 void Memory::set_vram_blocked(bool blocked) { this->vram_blocked_ = blocked; }
 

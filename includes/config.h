@@ -11,4 +11,10 @@
 
 #define GB_PROGRAM_COUNTER_START 0x0100
 
+#if defined(GBEMU_DEBUG)
+inline constexpr bool kDebugMode = true;
+#else
+inline constexpr bool kDebugMode = false;
+#endif
+
 #endif

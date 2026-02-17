@@ -21,5 +21,8 @@ target_link_libraries(gbemu PRIVATE Eigen3::Eigen SDL2::SDL2 SDL2::SDL2main)
 # Include directories
 target_include_directories(gbemu PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 
+# Enable compile-time debug flag in Debug builds
+target_compile_definitions(gbemu PRIVATE $<$<CONFIG:Debug>:GBEMU_DEBUG=1>)
+
 # Set the working directory for the debugger
 set_target_properties(gbemu PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

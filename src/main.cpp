@@ -2,6 +2,7 @@
 #include "gb.h"
 
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <string.h>
 #include <vector>
@@ -15,16 +16,11 @@ std::vector<uint8_t> read_file(const std::string &filename) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        printf("[WARNING] main > No ROM to load\n");
-        return -1;
+        throw std::runtime_error("No ROM to load");
     }
 
-    bool debug_flag = false;
-    if (argc > 2) {
-        if (strcmp(argv[2], "-d") == 0) {
-            printf("[DEBUG] main > Debug mode turned on\n");
-            debug_flag = true;
-        }
+    if constexpr (kDebugMode) {
+        std::cout << "[DEBUG] main > Debug mode enabled\n";
     }
 
     const char *rom_filename = argv[1];

@@ -1,5 +1,9 @@
 #include "joypad.h"
 
+#include "config.h"
+
+#include <iostream>
+
 Joypad::Joypad(Memory &memory) : memory(memory) {}
 
 void Joypad::handle_event(const SDL_Event &event) {
@@ -11,33 +15,52 @@ void Joypad::handle_event(const SDL_Event &event) {
 }
 
 void Joypad::set_key(SDL_Scancode sc, bool pressed) {
+    bool handled = true;
+    const char *gb_btn = nullptr;
+
     switch (sc) {
     case SDL_SCANCODE_RIGHT:
         keys_.right = pressed;
+        gb_btn = "Right";
         break;
     case SDL_SCANCODE_LEFT:
         keys_.left = pressed;
+        gb_btn = "Left";
         break;
     case SDL_SCANCODE_UP:
         keys_.up = pressed;
+        gb_btn = "Up";
         break;
     case SDL_SCANCODE_DOWN:
         keys_.down = pressed;
+        gb_btn = "Down";
         break;
     case SDL_SCANCODE_X:
         keys_.a = pressed;
+        gb_btn = "A";
         break; // A
     case SDL_SCANCODE_Z:
         keys_.b = pressed;
+        gb_btn = "B";
         break; // B
     case SDL_SCANCODE_RETURN:
         keys_.start = pressed;
+        gb_btn = "Start";
         break; // Start
     case SDL_SCANCODE_RSHIFT:
         keys_.select = pressed;
+        gb_btn = "Select";
         break; // Select
     default:
+        handled = false;
         break;
+    }
+
+    if constexpr (kDebugMode) {
+        if (handled) {
+            std::cout << "[DEBUG] joypad > [joypad] " << (pressed ? "down " : "up   ") << gb_btn << " (scancode=" << static_cast<int>(sc)
+                      << ", name=" << SDL_GetScancodeName(sc) << ")\n";
+        }
     }
 }
 

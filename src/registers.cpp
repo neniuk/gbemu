@@ -21,7 +21,7 @@ Registers::Registers(uint8_t initial_value) {
 
 void Registers::set_af(uint16_t value) {
     this->A = static_cast<uint8_t>((value & 0xFF00) >> 8);
-    this->F = static_cast<uint8_t>(value & 0x00FF);
+    this->F = static_cast<uint8_t>(value & 0x00F0);
 }
 uint16_t Registers::get_af() { return (static_cast<uint16_t>(this->A) << 8) | static_cast<uint16_t>(this->F); }
 
