@@ -31,6 +31,9 @@ class Memory {
     void set_if(uint8_t value);
 
     void attach_joypad(Joypad *joypad);
+    uint8_t read_io_reg(uint16_t address) const;
+    void write_io_reg(uint16_t address, uint8_t value);
+    bool consume_div_reset();
 
     void set_vram_blocked(bool blocked);
     void set_oam_blocked(bool blocked);
@@ -58,6 +61,7 @@ class Memory {
     bool oam_blocked_ = false;
     bool dma_request_pending_ = false;
     uint8_t dma_source_high_ = 0;
+    bool div_reset_pending_ = false;
 
     Joypad *joypad_ = nullptr;
 };

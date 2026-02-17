@@ -31,7 +31,8 @@ class Timer {
     Memory &memory;
     bool &stopped;
 
-    uint16_t m_cycles_counter = 0;
+    uint16_t div_m_cycles_counter = 0;
+    uint16_t tima_m_cycles_counter = 0;
 
     uint16_t clock_select_increment[4] = {256, 4, 16, 64};
 };

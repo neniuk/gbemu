@@ -3,11 +3,17 @@
 Timer::Timer(Registers &registers, Memory &memory, bool &stopped) : registers(registers), memory(memory), stopped(stopped) {}
 
 void Timer::tick(int dots) {
-    int m_cycles = dots / 4;
-    this->m_cycles_counter += m_cycles;
+    const int m_cycles = dots / 4;
 
-    if (this->m_cycles_counter >= 64 && !this->stopped) { // 16384Hz
-        this->m_cycles_counter -= 64;
+    if (this->memory.consume_div_reset()) {
+        this->div_m_cycles_counter = 0;
+    }
+
+    this->div_m_cycles_counter += static_cast<uint16_t>(m_cycles);
+    this->tima_m_cycles_counter += static_cast<uint16_t>(m_cycles);
+
+    while (this->div_m_cycles_counter >= 64 && !this->stopped) { // 16384Hz
+        this->div_m_cycles_counter -= 64;
         uint8_t div = this->get_div();
         this->set_div(div + 1);
     }
@@ -17,8 +23,8 @@ void Timer::tick(int dots) {
     if (!tima_enabled) return;
 
     uint16_t increment = this->clock_select_increment[clock_select];
-    if (this->m_cycles_counter >= increment) {
-        this->m_cycles_counter -= increment;
+    while (this->tima_m_cycles_counter >= increment) {
+        this->tima_m_cycles_counter -= increment;
 
         uint8_t tima = this->get_tima();
         if (tima == 0xFF) {
@@ -32,7 +38,7 @@ void Timer::tick(int dots) {
 }
 
 uint8_t Timer::get_div() { return this->memory.read_byte(0xFF04); }
-void Timer::set_div(uint8_t value) { this->memory.write_byte(0xFF04, value); }
+void Timer::set_div(uint8_t value) { this->memory.write_io_reg(0xFF04, value); }
 
 uint8_t Timer::get_tima() { return this->memory.read_byte(0xFF05); }
 void Timer::set_tima(uint8_t value) { this->memory.write_byte(0xFF05, value); }

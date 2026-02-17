@@ -129,6 +129,7 @@ void Memory::write_byte(uint16_t a, uint8_t v) {
         if (a == 0xFF04) {
             // Writing any value to DIV resets it to 0
             io_[a - 0xFF00] = 0;
+            this->div_reset_pending_ = true;
             return;
         }
         if (a == 0xFF46) {
@@ -183,6 +184,22 @@ uint8_t Memory::get_if() { return this->read_byte(0xFF0F); }
 void Memory::set_if(uint8_t value) { this->write_byte(0xFF0F, value); }
 
 void Memory::attach_joypad(Joypad *joypad) { this->joypad_ = joypad; }
+
+uint8_t Memory::read_io_reg(uint16_t address) const {
+    if (address < 0xFF00 || address > 0xFF7F) return 0xFF;
+    return io_[address - 0xFF00];
+}
+
+void Memory::write_io_reg(uint16_t address, uint8_t value) {
+    if (address < 0xFF00 || address > 0xFF7F) return;
+    io_[address - 0xFF00] = value;
+}
+
+bool Memory::consume_div_reset() {
+    const bool pending = this->div_reset_pending_;
+    this->div_reset_pending_ = false;
+    return pending;
+}
 
 void Memory::set_vram_blocked(bool blocked) { this->vram_blocked_ = blocked; }
 
