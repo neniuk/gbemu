@@ -142,15 +142,40 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
     this->screen.set_renderer(renderer);
     this->screen.set_texture(texture);
 
-    // if (debug_flag) {
-    //     printf("[DEBUG] main > Window and renderer initialized\n");
+    // TODO: Read bitmap font from file, draw instructions
+    // this->screen.clear();
+    // this->screen.draw_centered_block("GBEMU\n\n"
+    //                                  "KEYBINDS:\n"
+    //                                  "D-PAD: ARROW KEYS\n"
+    //                                  "A: X   B: Z\n"
+    //                                  "SELECT: RIGHT SHIFT\n"
+    //                                  "START: ENTER\n\n"
+    //                                  "PRESS START\n"
+    //                                  "(ENTER) TO CONTINUE",
+    //                                  3, 24, 1);
+    // this->screen.present();
+
+    // bool continue_to_game = false;
+    // while (!continue_to_game) {
+    //     SDL_Event event;
+    //     while (SDL_PollEvent(&event)) {
+    //         if (event.type == SDL_QUIT) return;
+    //         if (event.type == SDL_KEYDOWN && !event.key.repeat) {
+    //             const SDL_Scancode sc = event.key.keysym.scancode;
+    //             if (sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_KP_ENTER) {
+    //                 continue_to_game = true;
+    //                 break;
+    //             }
+    //         }
+    //     }
+    //     SDL_Delay(1);
     // }
 
+    this->screen.clear();
     this->screen.draw_logo(cartridge_info.logo);
     this->screen.present();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(3));
     this->screen.clear();
-    this->screen.present();
 
     this->registers.PC = 0x0100; // Entrypoint
     this->run();
