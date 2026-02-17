@@ -182,8 +182,8 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
 };
 
 void GB::run() {
+    // TODO: enable saving/loading game state
     while (true) {
-
         // Joypad
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
