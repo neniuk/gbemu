@@ -4,22 +4,22 @@
 #include "alu.h"
 #include "bmi.h"
 #include "config.h"
+#include "cpu.h"
 #include "idu.h"
+#include "joypad.h"
 #include "memory.h"
+#include "ppu.h"
 #include "registers.h"
 #include "screen.h"
 #include "stack.h"
-#include "ppu.h"
-#include "cpu.h"
 #include "timer.h"
-#include "joypad.h"
 
 #include <array>
 #include <stdbool.h>
 #include <stdint.h>
-#include <vector>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 struct CartridgeInfo {
     std::string title;

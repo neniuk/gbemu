@@ -5,9 +5,9 @@
 #include "registers.h"
 #include "screen.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <array>
 #include <vector>
 
 class PPU {

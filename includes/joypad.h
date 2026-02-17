@@ -12,8 +12,8 @@ class Joypad {
 
     void handle_event(const SDL_Event &event);
     void set_joyp(uint8_t value); // CPU write to FF00
-    uint8_t get_joyp() const;      // CPU read from FF00
-    void tick();                    // edge detect -> IF bit4
+    uint8_t get_joyp() const;     // CPU read from FF00
+    void tick();                  // edge detect -> IF bit4
 
   private:
     struct Keys {

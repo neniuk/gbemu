@@ -15,13 +15,9 @@ void Memory::load_rom(const std::vector<uint8_t> &rom) {
     // Optional: size external RAM based on header later; keep empty for now.
 }
 
-uint8_t Memory::read_byte(uint16_t a) const {
-    return this->read_byte_impl(a, true);
-}
+uint8_t Memory::read_byte(uint16_t a) const { return this->read_byte_impl(a, true); }
 
-uint8_t Memory::read_byte_unrestricted(uint16_t a) const {
-    return this->read_byte_impl(a, false);
-}
+uint8_t Memory::read_byte_unrestricted(uint16_t a) const { return this->read_byte_impl(a, false); }
 
 uint8_t Memory::read_byte_impl(uint16_t a, bool respect_locks) const {
     // 0x0000-0x7FFF: Cartridge ROM (banking later)
@@ -171,27 +167,15 @@ std::vector<uint8_t> Memory::read_range(size_t start, size_t end) {
     return out;
 }
 
-uint8_t Memory::get_ie() {
-    return this->read_byte(0xFFFF);
-}
-void Memory::set_ie(uint8_t value) {
-    this->write_byte(0xFFFF, value);
-}
+uint8_t Memory::get_ie() { return this->read_byte(0xFFFF); }
+void Memory::set_ie(uint8_t value) { this->write_byte(0xFFFF, value); }
 
-uint8_t Memory::get_if() {
-    return this->read_byte(0xFF0F);
-}
-void Memory::set_if(uint8_t value) {
-    this->write_byte(0xFF0F, value);
-}
+uint8_t Memory::get_if() { return this->read_byte(0xFF0F); }
+void Memory::set_if(uint8_t value) { this->write_byte(0xFF0F, value); }
 
-void Memory::set_vram_blocked(bool blocked) {
-    this->vram_blocked_ = blocked;
-}
+void Memory::set_vram_blocked(bool blocked) { this->vram_blocked_ = blocked; }
 
-void Memory::set_oam_blocked(bool blocked) {
-    this->oam_blocked_ = blocked;
-}
+void Memory::set_oam_blocked(bool blocked) { this->oam_blocked_ = blocked; }
 
 uint8_t Memory::read_vram_raw(uint16_t address) const {
     if (address < 0x8000 || address > 0x9FFF) return 0xFF;

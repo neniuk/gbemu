@@ -1,13 +1,13 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "memory.h"
-#include "registers.h"
-#include "stack.h"
-#include "idu.h"
 #include "alu.h"
 #include "bmi.h"
+#include "idu.h"
+#include "memory.h"
 #include "ppu.h"
+#include "registers.h"
+#include "stack.h"
 
 #include <cstddef>
 #include <cstdint>

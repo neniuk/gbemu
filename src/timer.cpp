@@ -19,7 +19,7 @@ void Timer::tick(int dots) {
     uint16_t increment = this->clock_select_increment[clock_select];
     if (this->m_cycles_counter >= increment) {
         this->m_cycles_counter -= increment;
-        
+
         uint8_t tima = this->get_tima();
         if (tima == 0xFF) {
             this->set_tima(this->get_tma());
@@ -31,30 +31,14 @@ void Timer::tick(int dots) {
     }
 }
 
-uint8_t Timer::get_div() {
-    return this->memory.read_byte(0xFF04);
-}
-void Timer::set_div(uint8_t value) {
-    this->memory.write_byte(0xFF04, value);
-}
+uint8_t Timer::get_div() { return this->memory.read_byte(0xFF04); }
+void Timer::set_div(uint8_t value) { this->memory.write_byte(0xFF04, value); }
 
-uint8_t Timer::get_tima() {
-    return this->memory.read_byte(0xFF05);
-}
-void Timer::set_tima(uint8_t value) {
-    this->memory.write_byte(0xFF05, value);
-}
+uint8_t Timer::get_tima() { return this->memory.read_byte(0xFF05); }
+void Timer::set_tima(uint8_t value) { this->memory.write_byte(0xFF05, value); }
 
-uint8_t Timer::get_tma() {
-    return this->memory.read_byte(0xFF06);
-}
-void Timer::set_tma(uint8_t value) {
-    this->memory.write_byte(0xFF06, value);
-}
+uint8_t Timer::get_tma() { return this->memory.read_byte(0xFF06); }
+void Timer::set_tma(uint8_t value) { this->memory.write_byte(0xFF06, value); }
 
-uint8_t Timer::get_tac() {
-    return this->memory.read_byte(0xFF07);
-}
-void Timer::set_tac(uint8_t value) {
-    this->memory.write_byte(0xFF07, value);
-}
+uint8_t Timer::get_tac() { return this->memory.read_byte(0xFF07); }
+void Timer::set_tac(uint8_t value) { this->memory.write_byte(0xFF07, value); }

@@ -1,13 +1,13 @@
 #include "cpu.h"
 #include "alu.h"
+#include "bmi.h"
 #include "config.h"
 #include "idu.h"
 #include "memory.h"
+#include "ppu.h"
 #include "registers.h"
 #include "screen.h"
 #include "stack.h"
-#include "bmi.h"
-#include "ppu.h"
 
 #include <SDL2/SDL.h>
 #include <assert.h>
@@ -16,7 +16,8 @@
 #include <stdexcept>
 #include <vector>
 
-CPU::CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu, BMI &bmi, PPU &ppu) : registers(registers), memory(memory), stack(stack), idu(idu), alu(alu), bmi(bmi), ppu(ppu) {
+CPU::CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu, BMI &bmi, PPU &ppu)
+    : registers(registers), memory(memory), stack(stack), idu(idu), alu(alu), bmi(bmi), ppu(ppu) {
     this->init(); // Initialize opcode tables
 }
 
@@ -50,7 +51,7 @@ void CPU::service_interrupts() {
     this->registers.IME = false;
 
     auto service = [&](uint8_t bit, uint16_t vector) -> bool {
-        if (((IE & IF) & (1u << bit)) == 0) return false; // Not requested / enabled
+        if (((IE & IF) & (1u << bit)) == 0) return false;                         // Not requested / enabled
         this->memory.write_byte(0xFF0F, static_cast<uint8_t>(IF & ~(1u << bit))); // Clear IF bit
 
         this->stack.push_word(this->registers.PC);

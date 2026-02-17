@@ -1,11 +1,10 @@
-#include "gb.h"
 #include "config.h"
+#include "gb.h"
 
 #include <fstream>
 #include <iterator>
-#include <vector>
 #include <string.h>
-
+#include <vector>
 
 std::vector<uint8_t> read_file(const std::string &filename) {
     std::ifstream file(filename, std::ios::binary);
