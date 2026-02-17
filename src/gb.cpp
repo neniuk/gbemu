@@ -16,7 +16,7 @@
 
 GB::GB()
     : stack(registers.SP, memory), idu(registers, memory), alu(registers, memory), bmi(registers, memory), ppu(registers, memory, screen),
-      cpu(registers, memory, stack, idu, alu, bmi, ppu), timer(registers, memory, cpu.stopped){};
+      cpu(registers, memory, stack, idu, alu, bmi, ppu), timer(registers, memory, cpu.stopped), joypad(memory) {};
 
 CartridgeInfo GB::read_cartridge_header() {
     std::vector<uint8_t> entry_point = this->memory.read_range(0x0100, 0x0103);
