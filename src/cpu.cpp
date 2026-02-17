@@ -360,8 +360,7 @@ void CPU::op_rla() {
 // - - - -
 void CPU::op_jr_e8() {
     int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-    this->registers.PC += offset;
-
+    this->registers.PC += (2 + offset);
     this->tstates += 12;
 }
 
@@ -450,10 +449,11 @@ void CPU::op_rra() {
 void CPU::op_jr_nz_e8() {
     if (!this->registers.get_flag_z()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += offset;
+        this->registers.PC += (2 + offset);
         this->tstates += 12;
         return;
     }
+    this->registers.PC += 2;
     this->tstates += 8;
 }
 
@@ -569,10 +569,11 @@ void CPU::op_daa() {
 void CPU::op_jr_z_e8() {
     if (this->registers.get_flag_z()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += offset;
+        this->registers.PC += (2 + offset);
         this->tstates += 12;
         return;
     }
+    this->registers.PC += 2;
     this->tstates += 8;
 }
 
@@ -662,7 +663,7 @@ void CPU::op_cpl() {
 void CPU::op_jr_nc_e8() {
     if (!this->registers.get_flag_c()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += offset;
+        this->registers.PC += (2 + offset);
         this->tstates += 12;
         return;
     }
@@ -752,7 +753,7 @@ void CPU::op_scf() {
 void CPU::op_jr_c_e8() {
     if (this->registers.get_flag_c()) {
         int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += offset;
+        this->registers.PC += (2 + offset);
         this->tstates += 12;
         return;
     }
@@ -2543,7 +2544,7 @@ void CPU::op_ldh_a8m_a() {
 // 1 12
 // - - - -
 void CPU::op_pop_hl() {
-    uint8_t word = this->stack.pop_word();
+    uint16_t word = this->stack.pop_word();
     this->registers.set_hl(word);
     this->registers.PC += 1;
     this->tstates += 12;
@@ -2551,13 +2552,13 @@ void CPU::op_pop_hl() {
 
 // 0xe2
 // LDH [C], A
-// 2 8
+// 1 8
 // - - - -
 // Notes: LDH [C], A has the alternative mnemonic LD [$FF00+C], A
 void CPU::op_ldh_cm_a() {
     uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers.C);
     this->memory.write_byte(address, this->registers.A);
-    this->registers.PC += 2;
+    this->registers.PC += 1;
     this->tstates += 8;
 }
 
@@ -2719,13 +2720,13 @@ void CPU::op_pop_af() {
 
 // 0xf2
 // LDH A, [C]
-// 2 8
+// 1 8
 // - - - -
 // LDH A, [C] has the alternative mnemonic LD A, [$FF00+C]
 void CPU::op_ldh_a_cm() {
     uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers.C);
     this->registers.A = this->memory.read_byte(address);
-    this->registers.PC += 2;
+    this->registers.PC += 1;
     this->tstates += 8;
 }
 
