@@ -16,6 +16,14 @@ void Memory::load_rom(const std::vector<uint8_t> &rom) {
 }
 
 uint8_t Memory::read_byte(uint16_t a) const {
+    return this->read_byte_impl(a, true);
+}
+
+uint8_t Memory::read_byte_unrestricted(uint16_t a) const {
+    return this->read_byte_impl(a, false);
+}
+
+uint8_t Memory::read_byte_impl(uint16_t a, bool respect_locks) const {
     // 0x0000-0x7FFF: Cartridge ROM (banking later)
     if (a <= 0x7FFF) {
         if (a < rom_.size()) return rom_[a];
@@ -24,6 +32,7 @@ uint8_t Memory::read_byte(uint16_t a) const {
 
     // 0x8000-0x9FFF: VRAM
     if (a >= 0x8000 && a <= 0x9FFF) {
+        if (respect_locks && this->vram_blocked_) return 0xFF;
         return vram_[a - 0x8000];
     }
 
@@ -47,6 +56,7 @@ uint8_t Memory::read_byte(uint16_t a) const {
 
     // 0xFE00-0xFE9F: OAM
     if (a >= 0xFE00 && a <= 0xFE9F) {
+        if (respect_locks && this->oam_blocked_) return 0xFF;
         return oam_[a - 0xFE00];
     }
 
@@ -76,6 +86,7 @@ void Memory::write_byte(uint16_t a, uint8_t v) {
     }
 
     if (a >= 0x8000 && a <= 0x9FFF) {
+        if (this->vram_blocked_) return;
         vram_[a - 0x8000] = v;
         return;
     }
@@ -100,6 +111,7 @@ void Memory::write_byte(uint16_t a, uint8_t v) {
     }
 
     if (a >= 0xFE00 && a <= 0xFE9F) {
+        if (this->oam_blocked_) return;
         oam_[a - 0xFE00] = v;
         return;
     }
@@ -113,6 +125,10 @@ void Memory::write_byte(uint16_t a, uint8_t v) {
             // Writing any value to DIV resets it to 0
             io_[a - 0xFF00] = 0;
             return;
+        }
+        if (a == 0xFF46) {
+            this->dma_request_pending_ = true;
+            this->dma_source_high_ = v;
         }
         io_[a - 0xFF00] = v;
         return;
@@ -167,4 +183,34 @@ uint8_t Memory::get_if() {
 }
 void Memory::set_if(uint8_t value) {
     this->write_byte(0xFF0F, value);
+}
+
+void Memory::set_vram_blocked(bool blocked) {
+    this->vram_blocked_ = blocked;
+}
+
+void Memory::set_oam_blocked(bool blocked) {
+    this->oam_blocked_ = blocked;
+}
+
+uint8_t Memory::read_vram_raw(uint16_t address) const {
+    if (address < 0x8000 || address > 0x9FFF) return 0xFF;
+    return this->vram_[address - 0x8000];
+}
+
+uint8_t Memory::read_oam_raw(uint16_t address) const {
+    if (address < 0xFE00 || address > 0xFE9F) return 0xFF;
+    return this->oam_[address - 0xFE00];
+}
+
+void Memory::write_oam_raw(uint16_t address, uint8_t value) {
+    if (address < 0xFE00 || address > 0xFE9F) return;
+    this->oam_[address - 0xFE00] = value;
+}
+
+bool Memory::consume_dma_request(uint8_t &source_high) {
+    if (!this->dma_request_pending_) return false;
+    this->dma_request_pending_ = false;
+    source_high = this->dma_source_high_;
+    return true;
 }

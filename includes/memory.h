@@ -12,6 +12,7 @@ class Memory {
     void load_rom(const std::vector<uint8_t> &rom);
 
     uint8_t read_byte(uint16_t address) const;
+    uint8_t read_byte_unrestricted(uint16_t address) const;
     void write_byte(uint16_t address, uint8_t value);
 
     uint16_t read_word(uint16_t address) const;
@@ -27,7 +28,18 @@ class Memory {
     uint8_t get_if();
     void set_if(uint8_t value);
 
+    void set_vram_blocked(bool blocked);
+    void set_oam_blocked(bool blocked);
+
+    uint8_t read_vram_raw(uint16_t address) const;
+    uint8_t read_oam_raw(uint16_t address) const;
+    void write_oam_raw(uint16_t address, uint8_t value);
+
+    bool consume_dma_request(uint8_t &source_high);
+
   private:
+    uint8_t read_byte_impl(uint16_t address, bool respect_locks) const;
+
     std::vector<uint8_t> rom_;
     std::vector<uint8_t> eram_;
 
@@ -37,6 +49,11 @@ class Memory {
     uint8_t io_[0x0080];   // 0xFF00-0xFF7F (placeholder; later route to devices)
     uint8_t hram_[0x007F]; // 0xFF80-0xFFFE
     uint8_t ie_;           // 0xFFFF
+
+    bool vram_blocked_ = false;
+    bool oam_blocked_ = false;
+    bool dma_request_pending_ = false;
+    uint8_t dma_source_high_ = 0;
 };
 
 #endif

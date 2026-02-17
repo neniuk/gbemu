@@ -13,7 +13,7 @@ find_package(Eigen3 CONFIG REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 
 # Add the executable
-add_executable(gbemu src/main.cpp src/memory.cpp src/registers.cpp src/stack.cpp src/screen.cpp src/idu.cpp src/alu.cpp src/bmi.cpp src/ppu.cpp src/timer.cpp src/cpu.cpp src/cpu_cb.cpp src/gb.cpp)
+add_executable(gbemu src/main.cpp src/memory.cpp src/registers.cpp src/stack.cpp src/screen.cpp src/idu.cpp src/alu.cpp src/bmi.cpp src/ppu.cpp src/timer.cpp src/joypad.cpp src/cpu.cpp src/cpu_cb.cpp src/gb.cpp)
 
 # Link libraries
 target_link_libraries(gbemu PRIVATE Eigen3::Eigen SDL2::SDL2 SDL2::SDL2main)

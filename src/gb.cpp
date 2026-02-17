@@ -150,28 +150,34 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
     this->screen.present();
 
     this->registers.PC = 0x0100; // Entrypoint
-    // this->run();
+    this->run();
 };
 
 void GB::run() {
     while (true) {
-        int dots = 0;
-        int target = 70224;
-        while (dots < target) {
-            const uint32_t t_states = this->cpu.step();
-            int dots_advanced = t_states;
-            dots += dots_advanced;
 
-            // Tick hardware
-            this->ppu.tick(dots_advanced);
-            this->timer.tick(dots_advanced); // DIV, TIMA, TMA, TAC
-            // this->dma.tick(dots_advanced);
-            // this->serial.tick(dots_advanced);
-            // this->joypad.tick(dots_advanced);
-
-            this->cpu.service_interrupts();
+        // Joypad
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) return;
+            joypad.handle_event(event);
         }
-        this->screen.present();
+        joypad.tick();
+
+        const uint32_t t_states = this->cpu.step();
+        int dots_advanced = t_states;
+
+        // Tick hardware
+        this->ppu.tick(dots_advanced); // LCD control, STAT, LY, LYC, SCX, SCY, WX, WY, BGP, OBP0, OBP1, rendering, DMA
+        this->timer.tick(dots_advanced); // DIV, TIMA, TMA, TAC
+        // this->serial.tick(dots_advanced);
+        // this->joypad.tick(dots_advanced);
+
+        this->cpu.service_interrupts();
+
+        if (this->ppu.consume_frame_ready()) {
+            this->screen.present();
+        }
     }
 }
 

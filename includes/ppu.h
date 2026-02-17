@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <array>
 #include <vector>
 
 class PPU {
@@ -14,6 +15,7 @@ class PPU {
     PPU(Registers &registers, Memory &memory, Screen &screen);
 
     void tick(int dots);
+    bool consume_frame_ready();
 
     // LCD control & status registers
     uint8_t get_lcdc();
@@ -55,7 +57,17 @@ class PPU {
   private:
     void reset_lcd_off_state();
     void request_vblank_interrupt();
+    void request_lcd_stat_interrupt();
     void update_mode_for_current_dot();
+    void update_lyc_flag_and_stat_interrupt();
+    void apply_memory_locks();
+    void render_scanline();
+    void render_bg_window_scanline(std::array<uint8_t, GB_SCREEN_WIDTH> &bg_color_ids);
+    void render_sprites_scanline(const std::array<uint8_t, GB_SCREEN_WIDTH> &bg_color_ids);
+    uint8_t read_tile_pixel(uint8_t tile_index, uint8_t row, uint8_t col, bool use_unsigned_tile_index) const;
+    uint8_t apply_palette(uint8_t palette_reg, uint8_t color_id) const;
+    void begin_dma(uint8_t source_high);
+    void tick_dma_one_dot();
 
     Registers &registers;
     Memory &memory;
@@ -66,6 +78,7 @@ class PPU {
     uint8_t mode = 2;
     bool frame_ready = false;
     bool lcd_enabled = false;
+    bool stat_irq_line = false;
 
     const uint16_t dots_per_scanline = 456;
     const uint16_t visible_scanlines = 144;
@@ -73,6 +86,13 @@ class PPU {
     const uint16_t oam_dots = 80;
     const uint16_t transfer_dots = 172;
     const uint16_t hblank_dots = 204;
+
+    bool scanline_rendered = false;
+
+    bool dma_active = false;
+    uint16_t dma_source_base = 0;
+    uint16_t dma_index = 0;
+    int dma_dot_counter = 0;
 };
 
 #endif

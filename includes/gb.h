@@ -12,6 +12,7 @@
 #include "ppu.h"
 #include "cpu.h"
 #include "timer.h"
+#include "joypad.h"
 
 #include <array>
 #include <stdbool.h>
@@ -62,6 +63,7 @@ class GB {
     PPU ppu;
     CPU cpu;
     Timer timer;
+    Joypad joypad;
 
     static const std::unordered_map<uint8_t, std::string> cartridge_types;
     static const std::unordered_map<uint8_t, std::string> old_licensees;

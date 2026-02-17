@@ -16,7 +16,9 @@
 #include <stdexcept>
 #include <vector>
 
-CPU::CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu, BMI &bmi, PPU &ppu) : registers(registers), memory(memory), stack(stack), idu(idu), alu(alu), bmi(bmi), ppu(ppu) {}
+CPU::CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu, BMI &bmi, PPU &ppu) : registers(registers), memory(memory), stack(stack), idu(idu), alu(alu), bmi(bmi), ppu(ppu) {
+    this->init(); // Initialize opcode tables
+}
 
 uint32_t CPU::step() {
     if (this->halted || this->stopped) {
