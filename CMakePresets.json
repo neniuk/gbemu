@@ -20,6 +20,44 @@
 			"inherits": "linux-vcpkg-debug",
 			"binaryDir": "${sourceDir}/build/linux-vcpkg-release",
 			"cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+		},
+		{
+			"name": "macos-vcpkg-debug",
+			"displayName": "macOS Debug (vcpkg)",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/macos-vcpkg-debug",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+				"VCPKG_TARGET_TRIPLET": "x64-osx"
+			}
+		},
+		{
+			"name": "macos-vcpkg-release",
+			"displayName": "macOS Release (vcpkg)",
+			"inherits": "macos-vcpkg-debug",
+			"binaryDir": "${sourceDir}/build/macos-vcpkg-release",
+			"cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+		},
+		{
+			"name": "windows-vcpkg-debug",
+			"displayName": "Windows Debug (vcpkg)",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/windows-vcpkg-debug",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+				"VCPKG_TARGET_TRIPLET": "x64-windows"
+			}
+		},
+		{
+			"name": "windows-vcpkg-release",
+			"displayName": "Windows Release (vcpkg)",
+			"inherits": "windows-vcpkg-debug",
+			"binaryDir": "${sourceDir}/build/windows-vcpkg-release",
+			"cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
 		}
 	],
 	"buildPresets": [
@@ -27,6 +65,22 @@
 		{
 			"name": "linux-vcpkg-release",
 			"configurePreset": "linux-vcpkg-release"
+		},
+		{
+			"name": "macos-vcpkg-debug",
+			"configurePreset": "macos-vcpkg-debug"
+		},
+		{
+			"name": "macos-vcpkg-release",
+			"configurePreset": "macos-vcpkg-release"
+		},
+		{
+			"name": "windows-vcpkg-debug",
+			"configurePreset": "windows-vcpkg-debug"
+		},
+		{
+			"name": "windows-vcpkg-release",
+			"configurePreset": "windows-vcpkg-release"
 		}
 	]
 }
