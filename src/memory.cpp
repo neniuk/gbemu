@@ -21,7 +21,8 @@ uint8_t Memory::read_byte(uint16_t a) const { return this->read_byte_impl(a, tru
 uint8_t Memory::read_byte_unrestricted(uint16_t a) const { return this->read_byte_impl(a, false); }
 
 uint8_t Memory::read_byte_impl(uint16_t a, bool respect_locks) const {
-    // 0x0000-0x7FFF: Cartridge ROM (banking later)
+    // TODO: add banking support
+    // 0x0000-0x7FFF: Cartridge ROM
     if (a <= 0x7FFF) {
         if (a < rom_.size()) return rom_[a];
         return 0xFF;
@@ -33,7 +34,8 @@ uint8_t Memory::read_byte_impl(uint16_t a, bool respect_locks) const {
         return vram_[a - 0x8000];
     }
 
-    // 0xA000-0xBFFF: External RAM (if present / enabled later)
+    // TODO: add external RAM support
+    // 0xA000-0xBFFF: External RAM
     if (a >= 0xA000 && a <= 0xBFFF) {
         if (eram_.empty()) return 0xFF;
         const size_t idx = size_t(a - 0xA000) % eram_.size();

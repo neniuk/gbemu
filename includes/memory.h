@@ -50,9 +50,9 @@ class Memory {
     std::vector<uint8_t> eram_;
 
     uint8_t vram_[0x2000]; // 0x8000-0x9FFF
-    uint8_t wram_[0x2000]; // 0xC000-0xDFFF (DMG: 8KiB; CGB adds banking later)
+    uint8_t wram_[0x2000]; // 0xC000-0xDFFF
     uint8_t oam_[0x00A0];  // 0xFE00-0xFE9F
-    uint8_t io_[0x0080];   // 0xFF00-0xFF7F (placeholder; later route to devices)
+    uint8_t io_[0x0080];   // 0xFF00-0xFF7F
     uint8_t hram_[0x007F]; // 0xFF80-0xFFFE
     uint8_t ie_;           // 0xFFFF
 
