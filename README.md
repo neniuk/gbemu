@@ -18,8 +18,10 @@ Supports for now only DMG ROMs with ROM sizes <= 32KiB, and no RAM. Does not sup
 ## Running
 ```bash
     # Debug
-    ./build/{linux/macos/windows}-vcpkg-release/gbemu path/to/{rom_name}.gb
+    ./build/{linux/macos/windows}-vcpkg-debug/gbemu path/to/{rom_name}.gb
+```
 
+```bash
     # Release
     ./build/{linux/macos/windows}-vcpkg-release/gbemu path/to/{rom_name}.gb
 ```
