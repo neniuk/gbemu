@@ -1,24 +1,25 @@
 # gbemu
+Simple emulator for the original GB.
 
-## ROM compatibility
-Supports for now only DMG ROMs with ROM sizes <= 32KiB, and no RAM.
+## Compatibility
+Supports for now only DMG ROMs with ROM sizes <= 32KiB, and no RAM. Does not support SGB or CGB ROMs.
 
 ## Building
 ```bash
     # Debug
-    cmake --preset=linux-vcpkg-debug
-    cmake --build --preset=linux-vcpkg-debug
+    cmake --preset={linux/macos/windows}-vcpkg-debug
+    cmake --build --preset={linux/macos/windows}-vcpkg-debug
 
     # Release
-    cmake --preset=linux-vcpkg-release
-    cmake --build --preset=linux-vcpkg-release
+    cmake --preset={linux/macos/windows}-vcpkg-release
+    cmake --build --preset={linux/macos/windows}-vcpkg-release
 ```
 
 ## Running
 ```bash
     # Debug
-    ./build/linux-vcpkg-release/gbemu path/to/{rom_name}.gb
+    ./build/{linux/macos/windows}-vcpkg-release/gbemu path/to/{rom_name}.gb
 
     # Release
-    ./build/linux-vcpkg-release/gbemu path/to/{rom_name}.gb
+    ./build/{linux/macos/windows}-vcpkg-release/gbemu path/to/{rom_name}.gb
 ```
