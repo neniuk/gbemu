@@ -1,7 +1,8 @@
 # gbemu
+Simple emulator for the original GB.
 
-## ROM compatibility
-Supports for now only DMG ROMs with ROM sizes <= 32KiB, and no RAM.
+## Compatibility
+Supports for now only DMG ROMs with ROM sizes <= 32KiB, and no RAM. Does not support SGB or CGB ROMs.
 
 ## Building
 ```bash
