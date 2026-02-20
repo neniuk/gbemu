@@ -1,6 +1,6 @@
-#include "stack.h"
-#include "config.h"
-#include "memory.h"
+#include "stack.hpp"
+#include "config.hpp"
+#include "memory.hpp"
 
 #include <array>
 #include <cassert>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "memory.h"
-#include "registers.h"
+#include "memory.hpp"
+#include "registers.hpp"
 
 #include <cstddef>
 #include <cstdint>

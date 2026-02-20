@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config.h"
+#include "config.hpp"
 
 #include <SDL2/SDL.h>
 #include <cstddef>
@@ -19,7 +19,7 @@ class Screen {
     void present();
 
   private:
-    uint8_t screen_[config::screen_width][config::screen_height];
+    uint8_t screen_[config::k_screen_width][config::k_screen_height];
     SDL_Renderer *renderer_ = nullptr;
     SDL_Texture *texture_ = nullptr;
 

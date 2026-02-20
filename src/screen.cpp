@@ -1,4 +1,4 @@
-#include "screen.h"
+#include "screen.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -11,8 +11,8 @@ void Screen::set(size_t x, size_t y, uint8_t color) {
     assert(color < 4U);
     // clang-format off
     assert(
-        x < config::screen_width && 
-        y < config::screen_height
+        x < config::k_screen_width && 
+        y < config::k_screen_height
     );
     // clang-format on
     this->screen_[x][y] = color;
@@ -25,8 +25,8 @@ void Screen::draw_logo(const std::vector<uint8_t> &logo) {
     const size_t logo_w = 48;
     const size_t logo_h = 8;
 
-    const size_t off_x = (config::screen_width - logo_w) / 2;
-    const size_t off_y = (config::screen_height - logo_h) / 2;
+    const size_t off_x = (config::k_screen_width - logo_w) / 2;
+    const size_t off_y = (config::k_screen_height - logo_h) / 2;
 
     for (size_t half = 0; half < 2; ++half) {
         for (size_t i = 0; i < 24; ++i) {
@@ -57,14 +57,14 @@ void Screen::present() {
     assert(this->renderer_ != nullptr);
     assert(this->texture_ != nullptr);
 
-    uint32_t pixels[config::screen_width * config::screen_height];
-    for (size_t y = 0; y < config::screen_height; ++y) {
-        for (size_t x = 0; x < config::screen_width; ++x) {
-            pixels[y * config::screen_width + x] = this->palette_[this->screen_[x][y]];
+    uint32_t pixels[config::k_screen_width * config::k_screen_height];
+    for (size_t y = 0; y < config::k_screen_height; ++y) {
+        for (size_t x = 0; x < config::k_screen_width; ++x) {
+            pixels[y * config::k_screen_width + x] = this->palette_[this->screen_[x][y]];
         }
     }
 
-    SDL_UpdateTexture(this->texture_, nullptr, pixels, config::screen_width * sizeof(uint32_t));
+    SDL_UpdateTexture(this->texture_, nullptr, pixels, config::k_screen_width * sizeof(uint32_t));
 
     SDL_RenderClear(this->renderer_);
     SDL_RenderCopy(this->renderer_, this->texture_, nullptr, nullptr);

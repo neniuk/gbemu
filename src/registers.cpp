@@ -1,4 +1,4 @@
-#include "registers.h"
+#include "registers.hpp"
 
 #include <cassert>
 #include <cstddef>

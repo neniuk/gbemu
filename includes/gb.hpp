@@ -1,17 +1,17 @@
 #pragma once
 
-#include "alu.h"
-#include "bmi.h"
-#include "config.h"
-#include "cpu.h"
-#include "idu.h"
-#include "joypad.h"
-#include "memory.h"
-#include "ppu.h"
-#include "registers.h"
-#include "screen.h"
-#include "stack.h"
-#include "timer.h"
+#include "alu.hpp"
+#include "bmi.hpp"
+#include "config.hpp"
+#include "cpu.hpp"
+#include "idu.hpp"
+#include "joypad.hpp"
+#include "memory.hpp"
+#include "ppu.hpp"
+#include "registers.hpp"
+#include "screen.hpp"
+#include "stack.hpp"
+#include "timer.hpp"
 
 #include <array>
 #include <cstdint>

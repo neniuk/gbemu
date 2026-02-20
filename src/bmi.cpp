@@ -1,4 +1,4 @@
-#include "bmi.h"
+#include "bmi.hpp"
 
 BMI::BMI(Registers &registers, Memory &memory) : registers_(registers), memory_(memory) {}
 

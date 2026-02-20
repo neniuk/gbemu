@@ -1,230 +1,237 @@
-#include "memory.h"
-#include "joypad.h"
+#include "memory.hpp"
+#include "joypad.hpp"
 
-#include <algorithm>
+namespace {
+constexpr uint16_t k_rom_end = 0x7FFF;
+constexpr uint16_t k_vram_start = 0x8000;
+constexpr uint16_t k_vram_end = 0x9FFF;
+constexpr uint16_t k_eram_start = 0xA000;
+constexpr uint16_t k_eram_end = 0xBFFF;
+constexpr uint16_t k_wram_start = 0xC000;
+constexpr uint16_t k_wram_end = 0xDFFF;
+constexpr uint16_t k_echo_start = 0xE000;
+constexpr uint16_t k_echo_end = 0xFDFF;
+constexpr uint16_t k_oam_start = 0xFE00;
+constexpr uint16_t k_oam_end = 0xFE9F;
+constexpr uint16_t k_not_usable_start = 0xFEA0;
+constexpr uint16_t k_not_usable_end = 0xFEFF;
+constexpr uint16_t k_io_start = 0xFF00;
+constexpr uint16_t k_io_end = 0xFF7F;
+constexpr uint16_t k_hram_start = 0xFF80;
+constexpr uint16_t k_hram_end = 0xFFFE;
 
-Memory::Memory(uint8_t initial_value) : ie_(0) {
-    std::fill(std::begin(vram_), std::end(vram_), initial_value);
-    std::fill(std::begin(wram_), std::end(wram_), initial_value);
-    std::fill(std::begin(oam_), std::end(oam_), initial_value);
-    std::fill(std::begin(io_), std::end(io_), initial_value);
-    std::fill(std::begin(hram_), std::end(hram_), initial_value);
-}
+constexpr uint16_t k_joyp = 0xFF00;
+constexpr uint16_t k_div = 0xFF04;
+constexpr uint16_t k_if = 0xFF0F;
+constexpr uint16_t k_dma = 0xFF46;
+constexpr uint16_t k_ie = 0xFFFF;
 
-void Memory::load_rom(const std::vector<uint8_t> &rom) {
-    rom_ = rom;
-    // Optional: size external RAM based on header later; keep empty for now.
-}
+constexpr bool in_range(uint16_t address, uint16_t start, uint16_t end) { return address >= start && address <= end; }
 
-uint8_t Memory::read_byte(uint16_t a) const { return this->read_byte_impl(a, true); }
+constexpr size_t range_offset(uint16_t address, uint16_t start) { return static_cast<size_t>(address - start); }
+} // namespace
 
-uint8_t Memory::read_byte_unrestricted(uint16_t a) const { return this->read_byte_impl(a, false); }
+void Memory::load_rom(const std::vector<uint8_t> &rom) { rom_ = rom; }
 
-uint8_t Memory::read_byte_impl(uint16_t a, bool respect_locks) const {
-    // TODO: add banking support
-    // 0x0000-0x7FFF: Cartridge ROM
-    if (a <= 0x7FFF) {
-        if (a < rom_.size()) return rom_[a];
+uint8_t Memory::read_byte(uint16_t address) const { return read_byte_impl(address, true); }
+
+uint8_t Memory::read_byte_unrestricted(uint16_t address) const { return read_byte_impl(address, false); }
+
+uint8_t Memory::read_byte_impl(uint16_t address, bool respect_locks) const {
+    if (address <= k_rom_end) {
+        if (address < rom_.size()) return rom_[address];
         return 0xFF;
     }
 
-    // 0x8000-0x9FFF: VRAM
-    if (a >= 0x8000 && a <= 0x9FFF) {
-        if (respect_locks && this->vram_blocked_) return 0xFF;
-        return vram_[a - 0x8000];
+    if (in_range(address, k_vram_start, k_vram_end)) {
+        if (respect_locks && vram_blocked_) return 0xFF;
+        return vram_[range_offset(address, k_vram_start)];
     }
 
-    // TODO: add external RAM support
-    // 0xA000-0xBFFF: External RAM
-    if (a >= 0xA000 && a <= 0xBFFF) {
+    if (in_range(address, k_eram_start, k_eram_end)) {
         if (eram_.empty()) return 0xFF;
-        const size_t idx = size_t(a - 0xA000) % eram_.size();
-        return eram_[idx];
+        const size_t eram_index = range_offset(address, k_eram_start) % eram_.size();
+        return eram_[eram_index];
     }
 
-    // 0xC000-0xDFFF: WRAM
-    if (a >= 0xC000 && a <= 0xDFFF) {
-        return wram_[a - 0xC000];
+    if (in_range(address, k_wram_start, k_wram_end)) {
+        return wram_[range_offset(address, k_wram_start)];
     }
 
-    // 0xE000-0xFDFF: Echo RAM (mirror of 0xC000-0xDDFF)
-    if (a >= 0xE000 && a <= 0xFDFF) {
-        const uint16_t mirrored = uint16_t(a - 0x2000); // 0xE000->0xC000
-        return wram_[mirrored - 0xC000];
+    if (in_range(address, k_echo_start, k_echo_end)) {
+        const uint16_t mirrored = static_cast<uint16_t>(address - 0x2000);
+        return wram_[range_offset(mirrored, k_wram_start)];
     }
 
-    // 0xFE00-0xFE9F: OAM
-    if (a >= 0xFE00 && a <= 0xFE9F) {
-        if (respect_locks && this->oam_blocked_) return 0xFF;
-        return oam_[a - 0xFE00];
+    if (in_range(address, k_oam_start, k_oam_end)) {
+        if (respect_locks && oam_blocked_) return 0xFF;
+        return oam_[range_offset(address, k_oam_start)];
     }
 
-    // 0xFEA0-0xFEFF: Not usable
-    if (a >= 0xFEA0 && a <= 0xFEFF) {
-        return 0xFF;
+    if (in_range(address, k_not_usable_start, k_not_usable_end)) return 0xFF;
+
+    if (in_range(address, k_io_start, k_io_end)) {
+        if (address == k_joyp && joypad_ != nullptr) return joypad_->get_joyp();
+        return io_[range_offset(address, k_io_start)];
     }
 
-    // 0xFF00-0xFF7F: I/O registers (later: dispatch to joypad/timer/apu/ppu/etc)
-    if (a >= 0xFF00 && a <= 0xFF7F) {
-        if (a == 0xFF00 && this->joypad_ != nullptr) {
-            return this->joypad_->get_joyp();
-        }
-        return io_[a - 0xFF00];
+    if (in_range(address, k_hram_start, k_hram_end)) {
+        return hram_[range_offset(address, k_hram_start)];
     }
 
-    // 0xFF80-0xFFFE: HRAM
-    if (a >= 0xFF80 && a <= 0xFFFE) {
-        return hram_[a - 0xFF80];
-    }
-
-    // 0xFFFF: IE
     return ie_;
 }
 
-void Memory::write_byte(uint16_t a, uint8_t v) {
-    // 0000-7FFF: ROM / MBC control (later). For now ignore.
-    if (a <= 0x7FFF) {
+void Memory::write_byte(uint16_t address, uint8_t value) {
+    if (address <= k_rom_end) return;
+
+    if (in_range(address, k_vram_start, k_vram_end)) {
+        if (vram_blocked_) return;
+        vram_[range_offset(address, k_vram_start)] = value;
         return;
     }
 
-    if (a >= 0x8000 && a <= 0x9FFF) {
-        if (this->vram_blocked_) return;
-        vram_[a - 0x8000] = v;
-        return;
-    }
-
-    if (a >= 0xA000 && a <= 0xBFFF) {
+    if (in_range(address, k_eram_start, k_eram_end)) {
         if (!eram_.empty()) {
-            const size_t idx = size_t(a - 0xA000) % eram_.size();
-            eram_[idx] = v;
+            const size_t eram_index = range_offset(address, k_eram_start) % eram_.size();
+            eram_[eram_index] = value;
         }
         return;
     }
 
-    if (a >= 0xC000 && a <= 0xDFFF) {
-        wram_[a - 0xC000] = v;
+    if (in_range(address, k_wram_start, k_wram_end)) {
+        wram_[range_offset(address, k_wram_start)] = value;
         return;
     }
 
-    if (a >= 0xE000 && a <= 0xFDFF) {
-        const uint16_t mirrored = uint16_t(a - 0x2000);
-        wram_[mirrored - 0xC000] = v;
+    if (in_range(address, k_echo_start, k_echo_end)) {
+        const uint16_t mirrored = static_cast<uint16_t>(address - 0x2000);
+        wram_[range_offset(mirrored, k_wram_start)] = value;
         return;
     }
 
-    if (a >= 0xFE00 && a <= 0xFE9F) {
-        if (this->oam_blocked_) return;
-        oam_[a - 0xFE00] = v;
+    if (in_range(address, k_oam_start, k_oam_end)) {
+        if (oam_blocked_) return;
+        oam_[range_offset(address, k_oam_start)] = value;
         return;
     }
 
-    if (a >= 0xFEA0 && a <= 0xFEFF) {
-        return; // not usable
-    }
+    if (in_range(address, k_not_usable_start, k_not_usable_end)) return;
 
-    if (a >= 0xFF00 && a <= 0xFF7F) {
-        if (a == 0xFF00 && this->joypad_ != nullptr) {
-            this->joypad_->set_joyp(v);
-            io_[a - 0xFF00] = v;
+    if (in_range(address, k_io_start, k_io_end)) {
+        if (address == k_joyp && joypad_ != nullptr) {
+            joypad_->set_joyp(value);
+            io_[range_offset(address, k_io_start)] = value;
             return;
         }
-        if (a == 0xFF04) {
-            // Writing any value to DIV resets it to 0
-            io_[a - 0xFF00] = 0;
-            this->div_reset_pending_ = true;
+
+        if (address == k_div) {
+            io_[range_offset(address, k_io_start)] = 0;
+            div_reset_pending_ = true;
             return;
         }
-        if (a == 0xFF46) {
-            this->dma_request_pending_ = true;
-            this->dma_source_high_ = v;
+
+        if (address == k_dma) {
+            dma_request_pending_ = true;
+            dma_source_high_ = value;
         }
-        io_[a - 0xFF00] = v;
+
+        io_[range_offset(address, k_io_start)] = value;
         return;
     }
 
-    if (a >= 0xFF80 && a <= 0xFFFE) {
-        hram_[a - 0xFF80] = v;
+    if (in_range(address, k_hram_start, k_hram_end)) {
+        hram_[range_offset(address, k_hram_start)] = value;
         return;
     }
 
-    ie_ = v; // 0xFFFF
+    ie_ = value;
 }
 
 uint16_t Memory::read_word(uint16_t address) const {
-    const uint8_t lo = read_byte(address);
-    const uint8_t hi = read_byte(uint16_t(address + 1));
-    return static_cast<uint16_t>(uint16_t(lo) | (uint16_t(hi) << 8));
+    const uint8_t low_byte = read_byte(address);
+    const uint8_t high_byte = read_byte(static_cast<uint16_t>(address + 1));
+    return static_cast<uint16_t>(low_byte | (static_cast<uint16_t>(high_byte) << 8));
 }
 
 void Memory::write_word(uint16_t address, uint16_t value) {
-    write_byte(address, uint8_t(value & 0xFF));
-    write_byte(uint16_t(address + 1), uint8_t(value >> 8));
+    write_byte(address, static_cast<uint8_t>(value & 0x00FF));
+    write_byte(static_cast<uint16_t>(address + 1), static_cast<uint8_t>(value >> 8));
 }
 
 void Memory::write_range(size_t start, size_t end, uint8_t value) {
-    for (size_t a = start; a <= end; ++a)
-        write_byte(uint16_t(a), value);
+    if (end < start) return;
+
+    for (size_t address = start; address <= end; ++address) {
+        write_byte(static_cast<uint16_t>(address), value);
+    }
 }
 
 void Memory::write_range(size_t start, const std::vector<uint8_t> &data) {
-    for (size_t i = 0; i < data.size(); ++i)
-        write_byte(uint16_t(start + i), data[i]);
+    for (size_t index = 0; index < data.size(); ++index) {
+        write_byte(static_cast<uint16_t>(start + index), data[index]);
+    }
 }
 
-std::vector<uint8_t> Memory::read_range(size_t start, size_t end) {
-    std::vector<uint8_t> out;
-    out.reserve(end - start + 1);
-    for (size_t a = start; a <= end; ++a)
-        out.push_back(read_byte(uint16_t(a)));
-    return out;
+std::vector<uint8_t> Memory::read_range(size_t start, size_t end) const {
+    std::vector<uint8_t> bytes;
+    if (end < start) return bytes;
+
+    bytes.reserve(end - start + 1);
+    for (size_t address = start; address <= end; ++address) {
+        bytes.push_back(read_byte(static_cast<uint16_t>(address)));
+    }
+    return bytes;
 }
 
-uint8_t Memory::get_ie() { return this->read_byte(0xFFFF); }
-void Memory::set_ie(uint8_t value) { this->write_byte(0xFFFF, value); }
+uint8_t Memory::get_ie() const { return read_byte(k_ie); }
 
-uint8_t Memory::get_if() { return this->read_byte(0xFF0F); }
-void Memory::set_if(uint8_t value) { this->write_byte(0xFF0F, value); }
+void Memory::set_ie(uint8_t value) { write_byte(k_ie, value); }
 
-void Memory::attach_joypad(Joypad *joypad) { this->joypad_ = joypad; }
+uint8_t Memory::get_if() const { return read_byte(k_if); }
+
+void Memory::set_if(uint8_t value) { write_byte(k_if, value); }
+
+void Memory::attach_joypad(Joypad *joypad) { joypad_ = joypad; }
 
 uint8_t Memory::read_io_reg(uint16_t address) const {
-    if (address < 0xFF00 || address > 0xFF7F) return 0xFF;
-    return io_[address - 0xFF00];
+    if (!in_range(address, k_io_start, k_io_end)) return 0xFF;
+    return io_[range_offset(address, k_io_start)];
 }
 
 void Memory::write_io_reg(uint16_t address, uint8_t value) {
-    if (address < 0xFF00 || address > 0xFF7F) return;
-    io_[address - 0xFF00] = value;
+    if (!in_range(address, k_io_start, k_io_end)) return;
+    io_[range_offset(address, k_io_start)] = value;
 }
 
 bool Memory::consume_div_reset() {
-    const bool pending = this->div_reset_pending_;
-    this->div_reset_pending_ = false;
-    return pending;
+    const bool was_pending = div_reset_pending_;
+    div_reset_pending_ = false;
+    return was_pending;
 }
 
-void Memory::set_vram_blocked(bool blocked) { this->vram_blocked_ = blocked; }
+void Memory::set_vram_blocked(bool blocked) { vram_blocked_ = blocked; }
 
-void Memory::set_oam_blocked(bool blocked) { this->oam_blocked_ = blocked; }
+void Memory::set_oam_blocked(bool blocked) { oam_blocked_ = blocked; }
 
 uint8_t Memory::read_vram_raw(uint16_t address) const {
-    if (address < 0x8000 || address > 0x9FFF) return 0xFF;
-    return this->vram_[address - 0x8000];
+    if (!in_range(address, k_vram_start, k_vram_end)) return 0xFF;
+    return vram_[range_offset(address, k_vram_start)];
 }
 
 uint8_t Memory::read_oam_raw(uint16_t address) const {
-    if (address < 0xFE00 || address > 0xFE9F) return 0xFF;
-    return this->oam_[address - 0xFE00];
+    if (!in_range(address, k_oam_start, k_oam_end)) return 0xFF;
+    return oam_[range_offset(address, k_oam_start)];
 }
 
 void Memory::write_oam_raw(uint16_t address, uint8_t value) {
-    if (address < 0xFE00 || address > 0xFE9F) return;
-    this->oam_[address - 0xFE00] = value;
+    if (!in_range(address, k_oam_start, k_oam_end)) return;
+    oam_[range_offset(address, k_oam_start)] = value;
 }
 
 bool Memory::consume_dma_request(uint8_t &source_high) {
-    if (!this->dma_request_pending_) return false;
-    this->dma_request_pending_ = false;
-    source_high = this->dma_source_high_;
+    if (!dma_request_pending_) return false;
+    dma_request_pending_ = false;
+    source_high = dma_source_high_;
     return true;
 }

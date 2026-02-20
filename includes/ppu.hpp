@@ -1,7 +1,7 @@
 #pragma once
 
-#include "memory.h"
-#include "screen.h"
+#include "memory.hpp"
+#include "screen.hpp"
 
 #include <array>
 #include <cstddef>
@@ -60,8 +60,8 @@ class PPU {
     void update_lyc_flag_and_stat_interrupt();
     void apply_memory_locks();
     void render_scanline();
-    void render_bg_window_scanline(std::array<uint8_t, config::screen_width> &bg_color_ids);
-    void render_sprites_scanline(const std::array<uint8_t, config::screen_width> &bg_color_ids);
+    void render_bg_window_scanline(std::array<uint8_t, config::k_screen_width> &bg_color_ids);
+    void render_sprites_scanline(const std::array<uint8_t, config::k_screen_width> &bg_color_ids);
     uint8_t read_tile_pixel(uint8_t tile_index, uint8_t row, uint8_t col, bool use_unsigned_tile_index) const;
     uint8_t apply_palette(uint8_t palette_reg, uint8_t color_id) const;
     void begin_dma(uint8_t source_high);

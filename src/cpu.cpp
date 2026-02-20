@@ -1,13 +1,13 @@
-#include "cpu.h"
-#include "alu.h"
-#include "bmi.h"
-#include "config.h"
-#include "idu.h"
-#include "memory.h"
-#include "ppu.h"
-#include "registers.h"
-#include "screen.h"
-#include "stack.h"
+#include "cpu.hpp"
+#include "alu.hpp"
+#include "bmi.hpp"
+#include "config.hpp"
+#include "idu.hpp"
+#include "memory.hpp"
+#include "ppu.hpp"
+#include "registers.hpp"
+#include "screen.hpp"
+#include "stack.hpp"
 
 #include <SDL2/SDL.h>
 #include <cassert>

@@ -1,6 +1,6 @@
-#include "gb.h"
+#include "gb.hpp"
 
-#include "config.h"
+#include "config.hpp"
 
 #include <SDL2/SDL.h>
 #include <array>
@@ -99,11 +99,11 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
 
     // clang-format off
     SDL_Window *window = SDL_CreateWindow(
-        config::window_title,
+        config::k_window_title,
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED, 
-        config::screen_width * config::screen_scale,
-        config::screen_height * config::screen_scale,
+        config::k_screen_width * config::k_screen_scale,
+        config::k_screen_height * config::k_screen_scale,
         SDL_WINDOW_SHOWN
     );
     // clang-format on
@@ -111,9 +111,9 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     SDL_Texture *texture =
-        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, config::screen_width, config::screen_height);
+        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, config::k_screen_width, config::k_screen_height);
 
-    SDL_RenderSetLogicalSize(renderer, config::screen_width, config::screen_height);
+    SDL_RenderSetLogicalSize(renderer, config::k_screen_width, config::k_screen_height);
     SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
 
     this->screen.set_renderer(renderer);
@@ -127,7 +127,7 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
     std::this_thread::sleep_for(std::chrono::seconds(3));
     this->screen.clear();
 
-    this->registers.PC = config::pc_entrypoint;
+    this->registers.PC = config::k_pc_entrypoint;
     this->run();
 };
 

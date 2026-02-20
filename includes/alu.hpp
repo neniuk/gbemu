@@ -1,6 +1,6 @@
 #pragma once
 
-#include "registers.h"
+#include "registers.hpp"
 
 #include <cstddef>
 #include <cstdint>

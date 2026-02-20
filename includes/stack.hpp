@@ -1,7 +1,7 @@
 #pragma once
 
-#include "config.h"
-#include "memory.h"
+#include "config.hpp"
+#include "memory.hpp"
 
 #include <array>
 #include <cstdint>

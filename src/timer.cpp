@@ -1,4 +1,4 @@
-#include "timer.h"
+#include "timer.hpp"
 
 Timer::Timer(Registers &registers, Memory &memory, bool &stopped) : registers_(registers), memory_(memory), stopped_(stopped) {}
 

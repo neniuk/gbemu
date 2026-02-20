@@ -1,6 +1,6 @@
-#include "joypad.h"
+#include "joypad.hpp"
 
-#include "config.h"
+#include "config.hpp"
 
 #include <iostream>
 
@@ -56,7 +56,7 @@ void Joypad::set_key_(SDL_Scancode sc, bool pressed) {
         break;
     }
 
-    if constexpr (config::debug_mode) {
+    if constexpr (config::k_debug_mode) {
         if (handled) {
             std::cout << "[DEBUG] joypad > [joypad] " << (pressed ? "down " : "up   ") << gb_btn << " (scancode=" << static_cast<int>(sc)
                       << ", name=" << SDL_GetScancodeName(sc) << ")\n";

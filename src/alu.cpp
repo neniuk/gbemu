@@ -1,4 +1,4 @@
-#include "alu.h"
+#include "alu.hpp"
 
 ALU::ALU(Registers &registers) : registers_(registers) {}
 

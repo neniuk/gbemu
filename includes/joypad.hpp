@@ -1,6 +1,6 @@
 #pragma once
 
-#include "memory.h"
+#include "memory.hpp"
 
 #include <SDL2/SDL.h>
 #include <cstdint>

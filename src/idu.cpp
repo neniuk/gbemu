@@ -1,6 +1,6 @@
-#include "idu.h"
-#include "memory.h"
-#include "registers.h"
+#include "idu.hpp"
+#include "memory.hpp"
+#include "registers.hpp"
 
 #include <cstdint>
 

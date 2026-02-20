@@ -1,12 +1,12 @@
 #pragma once
 
-#include "alu.h"
-#include "bmi.h"
-#include "idu.h"
-#include "memory.h"
-#include "ppu.h"
-#include "registers.h"
-#include "stack.h"
+#include "alu.hpp"
+#include "bmi.hpp"
+#include "idu.hpp"
+#include "memory.hpp"
+#include "ppu.hpp"
+#include "registers.hpp"
+#include "stack.hpp"
 
 #include <cstddef>
 #include <cstdint>

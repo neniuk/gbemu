@@ -1,4 +1,4 @@
-#include "ppu.h"
+#include "ppu.hpp"
 
 #include <algorithm>
 #include <array>
@@ -155,12 +155,12 @@ void PPU::apply_memory_locks() {
 }
 
 void PPU::render_scanline() {
-    std::array<uint8_t, config::screen_width> bg_color_ids{};
+    std::array<uint8_t, config::k_screen_width> bg_color_ids{};
     this->render_bg_window_scanline(bg_color_ids);
     this->render_sprites_scanline(bg_color_ids);
 }
 
-void PPU::render_bg_window_scanline(std::array<uint8_t, config::screen_width> &bg_color_ids) {
+void PPU::render_bg_window_scanline(std::array<uint8_t, config::k_screen_width> &bg_color_ids) {
     const uint8_t lcdc = this->get_lcdc();
     const bool bg_enabled = (lcdc & 0x01) != 0;
     const bool window_enabled = (lcdc & 0x20) != 0;
@@ -175,7 +175,7 @@ void PPU::render_bg_window_scanline(std::array<uint8_t, config::screen_width> &b
     const uint8_t ly = this->get_ly();
     const uint8_t bgp = this->get_bgp();
 
-    for (int x = 0; x < config::screen_width; ++x) {
+    for (int x = 0; x < config::k_screen_width; ++x) {
         uint8_t color_id = 0;
 
         if (bg_enabled) {
@@ -213,7 +213,7 @@ void PPU::render_bg_window_scanline(std::array<uint8_t, config::screen_width> &b
     }
 }
 
-void PPU::render_sprites_scanline(const std::array<uint8_t, config::screen_width> &bg_color_ids) {
+void PPU::render_sprites_scanline(const std::array<uint8_t, config::k_screen_width> &bg_color_ids) {
     const uint8_t lcdc = this->get_lcdc();
     const bool sprites_enabled = (lcdc & 0x02) != 0;
     if (!sprites_enabled) return;
@@ -254,7 +254,7 @@ void PPU::render_sprites_scanline(const std::array<uint8_t, config::screen_width
 
         for (int px = 0; px < 8; ++px) {
             const int sx = x + px;
-            if (sx < 0 || sx >= config::screen_width) continue;
+            if (sx < 0 || sx >= config::k_screen_width) continue;
 
             uint8_t col = static_cast<uint8_t>(px);
             if (x_flip) col = static_cast<uint8_t>(7 - col);

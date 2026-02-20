@@ -1,5 +1,5 @@
-#include "config.h"
-#include "gb.h"
+#include "config.hpp"
+#include "gb.hpp"
 
 #include <cstring>
 #include <fstream>
@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
         throw std::runtime_error("No ROM to load");
     }
 
-    if constexpr (config::debug_mode) {
+    if constexpr (config::k_debug_mode) {
         std::cout << "[DEBUG] main > Debug mode enabled\n";
     }
 
