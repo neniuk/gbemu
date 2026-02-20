@@ -1,8 +1,6 @@
-#ifndef PPU_H
-#define PPU_H
+#pragma once
 
 #include "memory.h"
-#include "registers.h"
 #include "screen.h"
 
 #include <array>
@@ -12,9 +10,9 @@
 
 class PPU {
   public:
-    PPU(Registers &registers, Memory &memory, Screen &screen);
+    PPU(Memory &memory, Screen &screen);
 
-    void tick(int dots);
+    void tick(uint32_t dots);
     bool consume_frame_ready();
 
     // LCD control & status registers
@@ -62,20 +60,19 @@ class PPU {
     void update_lyc_flag_and_stat_interrupt();
     void apply_memory_locks();
     void render_scanline();
-    void render_bg_window_scanline(std::array<uint8_t, GB_SCREEN_WIDTH> &bg_color_ids);
-    void render_sprites_scanline(const std::array<uint8_t, GB_SCREEN_WIDTH> &bg_color_ids);
+    void render_bg_window_scanline(std::array<uint8_t, config::screen_width> &bg_color_ids);
+    void render_sprites_scanline(const std::array<uint8_t, config::screen_width> &bg_color_ids);
     uint8_t read_tile_pixel(uint8_t tile_index, uint8_t row, uint8_t col, bool use_unsigned_tile_index) const;
     uint8_t apply_palette(uint8_t palette_reg, uint8_t color_id) const;
     void begin_dma(uint8_t source_high);
     void tick_dma_one_dot();
 
-    Registers &registers;
-    Memory &memory;
-    Screen &screen;
+    Memory &memory_;
+    Screen &screen_;
 
     int dot_in_scanline = 0;
     int current_ly = 0;
-    uint8_t mode = 2;
+    uint8_t mode_ = 2;
     bool frame_ready = false;
     bool lcd_enabled = false;
     bool stat_irq_line = false;
@@ -94,5 +91,3 @@ class PPU {
     uint16_t dma_index = 0;
     int dma_dot_counter = 0;
 };
-
-#endif

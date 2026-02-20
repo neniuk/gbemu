@@ -1,5 +1,4 @@
-#ifndef MEMORY_H
-#define MEMORY_H
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -65,5 +64,3 @@ class Memory {
 
     Joypad *joypad_ = nullptr;
 };
-
-#endif

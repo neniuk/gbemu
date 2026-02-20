@@ -4,7 +4,7 @@
 
 #include <SDL2/SDL.h>
 #include <array>
-#include <assert.h>
+#include <cassert>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -17,7 +17,7 @@
 #include <vector>
 
 GB::GB()
-    : stack(registers.SP, memory), idu(registers, memory), alu(registers, memory), bmi(registers, memory), ppu(registers, memory, screen),
+    : stack(registers.SP, memory), idu(registers, memory), alu(registers), bmi(registers, memory), ppu(memory, screen),
       cpu(registers, memory, stack, idu, alu, bmi, ppu), timer(registers, memory, cpu.stopped), joypad(memory) {
     this->memory.attach_joypad(&this->joypad);
 };
@@ -53,15 +53,15 @@ CartridgeInfo GB::read_cartridge_header() {
     std::string destination = (destination_code == 0) ? "Japan (and possibly overseas)" : "Overseas only";
 
     static const std::array<int, 6> ram_kbs = {0, 2, 8, 32, 128, 64};
-    int ram_kb = (ram_size_code >= 0 && ram_size_code < ram_kbs.size()) ? ram_kbs[ram_size_code] : 0;
+    int ram_kb = (ram_size_code < ram_kbs.size()) ? ram_kbs[ram_size_code] : 0;
 
     CartridgeInfo cartridge_info = {.title = title,
                                     .entry_point = entry_point,
                                     .logo = logo,
                                     .licensee = licensee,
                                     .supports_sgb = (sgb_flag == 0x03),
-                                    .rom_size_kb = (rom_size_code >= 0 && rom_size_code <= 8) ? 32 * (1 << rom_size_code) : 0,
-                                    .num_rom_banks = (rom_size_code >= 0 && rom_size_code <= 8) ? (1 << rom_size_code) : 0,
+                                    .rom_size_kb = (rom_size_code <= 8) ? 32 * (1 << rom_size_code) : 0,
+                                    .num_rom_banks = (rom_size_code <= 8) ? (1 << rom_size_code) : 0,
                                     .ram_size_kb = ram_kb,
                                     .cartridge_type = this->cartridge_types.at(cartridge_type),
                                     .destination = destination,
@@ -93,40 +93,17 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
         throw std::runtime_error("Unsupported cartridge type or RAM size");
     }
 
-    // Start SDL window
     SDL_Init(SDL_INIT_EVERYTHING);
 
-    // // Setup audio
-    // bool is_playing = false;
-    // SDL_AudioSpec want, have;
-    // SDL_zero(want);
-    // want.freq = 44100;
-    // want.format = AUDIO_S16SYS;
-    // want.channels = 1;
-    // want.samples = 1024;
-    // want.callback = play;
-    // want.userdata = &is_playing;
+    // TODO: Setup audio
 
-    // SDL_AudioDeviceID audio = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-
-    // if (audio == 0) printf("[WARNING] main > Failed to open audio device: %s\n", SDL_GetError());
-
-    // if (audio != 0) {
-    //     SDL_PauseAudioDevice(audio, 0);
-    //     if (debug_flag) {
-    //         printf("[DEBUG] main > Audio device with: freq=%d, format=%d, channels=%d, samples=%d\n", have.freq,
-    //                have.format, have.channels, have.samples);
-    //     }
-    // }
-
-    // Setup window
     // clang-format off
     SDL_Window *window = SDL_CreateWindow(
-        GB_WINDOW_TITLE,
+        config::window_title,
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED, 
-        GB_SCREEN_WIDTH * GB_SCREEN_SCALE,
-        GB_SCREEN_HEIGHT * GB_SCREEN_SCALE,
+        config::screen_width * config::screen_scale,
+        config::screen_height * config::screen_scale,
         SDL_WINDOW_SHOWN
     );
     // clang-format on
@@ -134,42 +111,15 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     SDL_Texture *texture =
-        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, config::screen_width, config::screen_height);
 
-    SDL_RenderSetLogicalSize(renderer, GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+    SDL_RenderSetLogicalSize(renderer, config::screen_width, config::screen_height);
     SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
 
     this->screen.set_renderer(renderer);
     this->screen.set_texture(texture);
 
-    // TODO: Read bitmap font from file, draw instructions
-    // this->screen.clear();
-    // this->screen.draw_centered_block("GBEMU\n\n"
-    //                                  "KEYBINDS:\n"
-    //                                  "D-PAD: ARROW KEYS\n"
-    //                                  "A: X   B: Z\n"
-    //                                  "SELECT: RIGHT SHIFT\n"
-    //                                  "START: ENTER\n\n"
-    //                                  "PRESS START\n"
-    //                                  "(ENTER) TO CONTINUE",
-    //                                  3, 24, 1);
-    // this->screen.present();
-
-    // bool continue_to_game = false;
-    // while (!continue_to_game) {
-    //     SDL_Event event;
-    //     while (SDL_PollEvent(&event)) {
-    //         if (event.type == SDL_QUIT) return;
-    //         if (event.type == SDL_KEYDOWN && !event.key.repeat) {
-    //             const SDL_Scancode sc = event.key.keysym.scancode;
-    //             if (sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_KP_ENTER) {
-    //                 continue_to_game = true;
-    //                 break;
-    //             }
-    //         }
-    //     }
-    //     SDL_Delay(1);
-    // }
+    // TODO: Draw keybind instructions with bitmap font
 
     this->screen.clear();
     this->screen.draw_logo(cartridge_info.logo);
@@ -177,12 +127,12 @@ void GB::boot(std::vector<uint8_t> &rom_buf) {
     std::this_thread::sleep_for(std::chrono::seconds(3));
     this->screen.clear();
 
-    this->registers.PC = 0x0100; // Entrypoint
+    this->registers.PC = config::pc_entrypoint;
     this->run();
 };
 
 void GB::run() {
-    // TODO: enable saving/loading game state
+    // TODO: Enable saving/loading game state
     while (true) {
         // Joypad
         SDL_Event event;
@@ -192,14 +142,10 @@ void GB::run() {
         }
         joypad.tick();
 
-        const uint32_t t_states = this->cpu.step();
-        int dots_advanced = t_states;
+        const uint32_t t_states_advanced = this->cpu.step();
 
-        // Tick hardware
-        this->ppu.tick(dots_advanced);   // LCD control, STAT, LY, LYC, SCX, SCY, WX, WY, BGP, OBP0, OBP1, rendering, DMA
-        this->timer.tick(dots_advanced); // DIV, TIMA, TMA, TAC
-        // this->serial.tick(dots_advanced);
-        // this->joypad.tick(dots_advanced);
+        this->ppu.tick(t_states_advanced);
+        this->timer.tick(t_states_advanced);
 
         this->cpu.service_interrupts();
 

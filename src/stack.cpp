@@ -3,40 +3,35 @@
 #include "memory.h"
 
 #include <array>
-#include <assert.h>
+#include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
-#include <stdint.h>
 
-Stack::Stack(uint16_t &SP, Memory &memory) : SP(SP), memory(memory) {}
+Stack::Stack(uint16_t &SP, Memory &memory) : SP_(SP), memory_(memory) {}
 
 void Stack::push_byte(uint8_t value) {
-    assert(this->SP >= 1 && this->SP < GB_MEMORY_SIZE);
-
-    this->SP = static_cast<uint16_t>(this->SP - 1);
-    this->memory.write_byte(this->SP, value);
+    assert(this->SP_ > 0U);
+    this->SP_ = static_cast<uint16_t>(this->SP_ - 1U);
+    this->memory_.write_byte(this->SP_, value);
 }
 
 uint8_t Stack::pop_byte() {
-    assert(this->SP >= 0 && this->SP < GB_MEMORY_SIZE);
-
-    uint8_t byte = this->memory.read_byte(this->SP);
-    this->SP = static_cast<uint16_t>(this->SP + 1);
-
+    assert(this->SP_ < 0xFFFFU);
+    const uint8_t byte = this->memory_.read_byte(this->SP_);
+    this->SP_ = static_cast<uint16_t>(this->SP_ + 1U);
     return byte;
 }
 
 void Stack::push_word(uint16_t value) {
-    assert(this->SP >= 2 && this->SP < GB_MEMORY_SIZE);
-
-    this->SP = static_cast<uint16_t>(this->SP - 2);
-    this->memory.write_word(this->SP, value);
+    assert(this->SP_ > 1U);
+    this->SP_ = static_cast<uint16_t>(this->SP_ - 2U);
+    this->memory_.write_word(this->SP_, value);
 }
+
 uint16_t Stack::pop_word() {
-    assert(this->SP >= 0 && this->SP < GB_MEMORY_SIZE - 1);
-
-    uint16_t word = this->memory.read_word(this->SP);
-    this->SP = static_cast<uint16_t>(this->SP + 2);
-
+    assert(this->SP_ <= 0xFFFEU);
+    const uint16_t word = this->memory_.read_word(this->SP_);
+    this->SP_ = static_cast<uint16_t>(this->SP_ + 2U);
     return word;
 }

@@ -151,7 +151,7 @@ void Memory::write_byte(uint16_t a, uint8_t v) {
 uint16_t Memory::read_word(uint16_t address) const {
     const uint8_t lo = read_byte(address);
     const uint8_t hi = read_byte(uint16_t(address + 1));
-    return uint16_t(lo) | (uint16_t(hi) << 8);
+    return static_cast<uint16_t>(uint16_t(lo) | (uint16_t(hi) << 8));
 }
 
 void Memory::write_word(uint16_t address, uint16_t value) {

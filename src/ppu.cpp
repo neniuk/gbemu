@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <array>
 
-PPU::PPU(Registers &registers, Memory &memory, Screen &screen) : registers(registers), memory(memory), screen(screen) {}
+PPU::PPU(Memory &memory, Screen &screen) : memory_(memory), screen_(screen) {}
 
-void PPU::tick(int dots) {
+void PPU::tick(uint32_t dots) {
     const bool lcd_now_enabled = (this->get_lcdc() & 0x80) != 0;
     if (!lcd_now_enabled) {
         this->reset_lcd_off_state();
@@ -16,16 +16,16 @@ void PPU::tick(int dots) {
     if (!this->lcd_enabled) {
         this->dot_in_scanline = 0;
         this->current_ly = 0;
-        this->mode = 2;
+        this->mode_ = 2;
         this->frame_ready = false;
         this->set_ly(0);
-        this->set_ppu_mode(this->mode);
+        this->set_ppu_mode(this->mode_);
     }
     this->lcd_enabled = true;
 
-    for (int i = 0; i < dots; ++i) {
+    for (uint32_t i = 0; i < dots; ++i) {
         uint8_t dma_source_high = 0;
-        if (this->memory.consume_dma_request(dma_source_high)) {
+        if (this->memory_.consume_dma_request(dma_source_high)) {
             this->begin_dma(dma_source_high);
         }
 
@@ -33,7 +33,7 @@ void PPU::tick(int dots) {
         this->update_mode_for_current_dot();
         this->apply_memory_locks();
 
-        if (!this->scanline_rendered && this->current_ly < this->visible_scanlines && this->mode == 0) {
+        if (!this->scanline_rendered && this->current_ly < this->visible_scanlines && this->mode_ == 0) {
             this->render_scanline();
             this->scanline_rendered = true;
         }
@@ -48,18 +48,18 @@ void PPU::tick(int dots) {
 
         if (this->current_ly == this->visible_scanlines) {
             // Entering line 144 => VBlank start.
-            this->mode = 1;
-            this->set_ppu_mode(this->mode);
+            this->mode_ = 1;
+            this->set_ppu_mode(this->mode_);
             this->request_vblank_interrupt();
             this->frame_ready = true;
         } else if (this->current_ly >= this->total_scanlines) {
             this->current_ly = 0;
-            this->mode = 2;
-            this->set_ppu_mode(this->mode);
+            this->mode_ = 2;
+            this->set_ppu_mode(this->mode_);
             this->frame_ready = false;
         } else if (this->current_ly < this->visible_scanlines) {
-            this->mode = 2;
-            this->set_ppu_mode(this->mode);
+            this->mode_ = 2;
+            this->set_ppu_mode(this->mode_);
         }
 
         this->set_ly(static_cast<uint8_t>(this->current_ly));
@@ -78,7 +78,7 @@ void PPU::reset_lcd_off_state() {
     this->lcd_enabled = false;
     this->dot_in_scanline = 0;
     this->current_ly = 0;
-    this->mode = 0;
+    this->mode_ = 0;
     this->frame_ready = false;
     this->scanline_rendered = false;
     this->stat_irq_line = false;
@@ -92,15 +92,15 @@ void PPU::reset_lcd_off_state() {
 }
 
 void PPU::request_vblank_interrupt() {
-    uint8_t interrupt_flags = this->memory.get_if();
+    uint8_t interrupt_flags = this->memory_.get_if();
     interrupt_flags |= 0x01;
-    this->memory.set_if(interrupt_flags);
+    this->memory_.set_if(interrupt_flags);
 }
 
 void PPU::request_lcd_stat_interrupt() {
-    uint8_t interrupt_flags = this->memory.get_if();
+    uint8_t interrupt_flags = this->memory_.get_if();
     interrupt_flags |= 0x02;
-    this->memory.set_if(interrupt_flags);
+    this->memory_.set_if(interrupt_flags);
 }
 
 void PPU::update_mode_for_current_dot() {
@@ -118,10 +118,10 @@ void PPU::update_mode_for_current_dot() {
         next_mode = 1;
     }
 
-    if (next_mode == this->mode) return;
+    if (next_mode == this->mode_) return;
 
-    this->mode = next_mode;
-    this->set_ppu_mode(this->mode);
+    this->mode_ = next_mode;
+    this->set_ppu_mode(this->mode_);
     this->update_lyc_flag_and_stat_interrupt();
 }
 
@@ -136,9 +136,9 @@ void PPU::update_lyc_flag_and_stat_interrupt() {
     this->set_stat(stat);
 
     const bool irq_on_lyc = (stat & 0x40) != 0 && lyc_match;
-    const bool irq_on_mode2 = (stat & 0x20) != 0 && this->mode == 2;
-    const bool irq_on_mode1 = (stat & 0x10) != 0 && this->mode == 1;
-    const bool irq_on_mode0 = (stat & 0x08) != 0 && this->mode == 0;
+    const bool irq_on_mode2 = (stat & 0x20) != 0 && this->mode_ == 2;
+    const bool irq_on_mode1 = (stat & 0x10) != 0 && this->mode_ == 1;
+    const bool irq_on_mode0 = (stat & 0x08) != 0 && this->mode_ == 0;
 
     const bool stat_line = irq_on_lyc || irq_on_mode2 || irq_on_mode1 || irq_on_mode0;
     if (stat_line && !this->stat_irq_line) {
@@ -148,19 +148,19 @@ void PPU::update_lyc_flag_and_stat_interrupt() {
 }
 
 void PPU::apply_memory_locks() {
-    const bool vram_blocked = this->mode == 3;
-    const bool oam_blocked = this->mode == 2 || this->mode == 3 || this->dma_active;
-    this->memory.set_vram_blocked(vram_blocked);
-    this->memory.set_oam_blocked(oam_blocked);
+    const bool vram_blocked = this->mode_ == 3;
+    const bool oam_blocked = this->mode_ == 2 || this->mode_ == 3 || this->dma_active;
+    this->memory_.set_vram_blocked(vram_blocked);
+    this->memory_.set_oam_blocked(oam_blocked);
 }
 
 void PPU::render_scanline() {
-    std::array<uint8_t, GB_SCREEN_WIDTH> bg_color_ids{};
+    std::array<uint8_t, config::screen_width> bg_color_ids{};
     this->render_bg_window_scanline(bg_color_ids);
     this->render_sprites_scanline(bg_color_ids);
 }
 
-void PPU::render_bg_window_scanline(std::array<uint8_t, GB_SCREEN_WIDTH> &bg_color_ids) {
+void PPU::render_bg_window_scanline(std::array<uint8_t, config::screen_width> &bg_color_ids) {
     const uint8_t lcdc = this->get_lcdc();
     const bool bg_enabled = (lcdc & 0x01) != 0;
     const bool window_enabled = (lcdc & 0x20) != 0;
@@ -175,7 +175,7 @@ void PPU::render_bg_window_scanline(std::array<uint8_t, GB_SCREEN_WIDTH> &bg_col
     const uint8_t ly = this->get_ly();
     const uint8_t bgp = this->get_bgp();
 
-    for (int x = 0; x < GB_SCREEN_WIDTH; ++x) {
+    for (int x = 0; x < config::screen_width; ++x) {
         uint8_t color_id = 0;
 
         if (bg_enabled) {
@@ -200,20 +200,20 @@ void PPU::render_bg_window_scanline(std::array<uint8_t, GB_SCREEN_WIDTH> &bg_col
             const uint8_t tile_x = static_cast<uint8_t>(pixel_x / 8);
             const uint8_t tile_y = static_cast<uint8_t>(pixel_y / 8);
             const uint16_t map_addr = static_cast<uint16_t>(map_base + tile_y * 32 + tile_x);
-            const uint8_t tile_index = this->memory.read_byte_unrestricted(map_addr);
+            const uint8_t tile_index = this->memory_.read_byte_unrestricted(map_addr);
 
             const uint8_t row = static_cast<uint8_t>(pixel_y % 8);
             const uint8_t col = static_cast<uint8_t>(pixel_x % 8);
             color_id = this->read_tile_pixel(tile_index, row, col, use_unsigned_tile_index);
         }
 
-        bg_color_ids[x] = color_id;
+        bg_color_ids[static_cast<size_t>(x)] = color_id;
         const uint8_t final_color = this->apply_palette(bgp, color_id);
-        this->screen.set(static_cast<size_t>(x), static_cast<size_t>(ly), final_color);
+        this->screen_.set(static_cast<size_t>(x), static_cast<size_t>(ly), final_color);
     }
 }
 
-void PPU::render_sprites_scanline(const std::array<uint8_t, GB_SCREEN_WIDTH> &bg_color_ids) {
+void PPU::render_sprites_scanline(const std::array<uint8_t, config::screen_width> &bg_color_ids) {
     const uint8_t lcdc = this->get_lcdc();
     const bool sprites_enabled = (lcdc & 0x02) != 0;
     if (!sprites_enabled) return;
@@ -226,17 +226,17 @@ void PPU::render_sprites_scanline(const std::array<uint8_t, GB_SCREEN_WIDTH> &bg
     int selected_count = 0;
     for (int i = 0; i < 40 && selected_count < 10; ++i) {
         const uint16_t base = static_cast<uint16_t>(0xFE00 + i * 4);
-        const int y = static_cast<int>(this->memory.read_oam_raw(base)) - 16;
+        const int y = static_cast<int>(this->memory_.read_oam_raw(base)) - 16;
         if (ly < y || ly >= y + sprite_height) continue;
-        sprite_indices[selected_count++] = static_cast<uint8_t>(i);
+        sprite_indices[static_cast<size_t>(selected_count++)] = static_cast<uint8_t>(i);
     }
 
     for (int s = 0; s < selected_count; ++s) {
-        const uint16_t base = static_cast<uint16_t>(0xFE00 + sprite_indices[s] * 4);
-        const int y = static_cast<int>(this->memory.read_oam_raw(base)) - 16;
-        const int x = static_cast<int>(this->memory.read_oam_raw(static_cast<uint16_t>(base + 1))) - 8;
-        uint8_t tile = this->memory.read_oam_raw(static_cast<uint16_t>(base + 2));
-        const uint8_t attrs = this->memory.read_oam_raw(static_cast<uint16_t>(base + 3));
+        const uint16_t base = static_cast<uint16_t>(0xFE00 + sprite_indices[static_cast<size_t>(s)] * 4);
+        const int y = static_cast<int>(this->memory_.read_oam_raw(base)) - 16;
+        const int x = static_cast<int>(this->memory_.read_oam_raw(static_cast<uint16_t>(base + 1))) - 8;
+        uint8_t tile = this->memory_.read_oam_raw(static_cast<uint16_t>(base + 2));
+        const uint8_t attrs = this->memory_.read_oam_raw(static_cast<uint16_t>(base + 3));
 
         const bool bg_priority = (attrs & 0x80) != 0;
         const bool y_flip = (attrs & 0x40) != 0;
@@ -254,7 +254,7 @@ void PPU::render_sprites_scanline(const std::array<uint8_t, GB_SCREEN_WIDTH> &bg
 
         for (int px = 0; px < 8; ++px) {
             const int sx = x + px;
-            if (sx < 0 || sx >= GB_SCREEN_WIDTH) continue;
+            if (sx < 0 || sx >= config::screen_width) continue;
 
             uint8_t col = static_cast<uint8_t>(px);
             if (x_flip) col = static_cast<uint8_t>(7 - col);
@@ -266,7 +266,7 @@ void PPU::render_sprites_scanline(const std::array<uint8_t, GB_SCREEN_WIDTH> &bg
 
             const uint8_t palette = use_obp1 ? this->get_obp1() : this->get_obp0();
             const uint8_t final_color = this->apply_palette(palette, color_id);
-            this->screen.set(static_cast<size_t>(sx), static_cast<size_t>(ly), final_color);
+            this->screen_.set(static_cast<size_t>(sx), static_cast<size_t>(ly), final_color);
         }
     }
 }
@@ -281,8 +281,8 @@ uint8_t PPU::read_tile_pixel(uint8_t tile_index, uint8_t row, uint8_t col, bool 
     }
 
     const uint16_t row_addr = static_cast<uint16_t>(tile_base + static_cast<uint16_t>(row) * 2);
-    const uint8_t lo = this->memory.read_byte_unrestricted(row_addr);
-    const uint8_t hi = this->memory.read_byte_unrestricted(static_cast<uint16_t>(row_addr + 1));
+    const uint8_t lo = this->memory_.read_byte_unrestricted(row_addr);
+    const uint8_t hi = this->memory_.read_byte_unrestricted(static_cast<uint16_t>(row_addr + 1));
     const uint8_t bit = static_cast<uint8_t>(7 - col);
     const uint8_t b0 = static_cast<uint8_t>((lo >> bit) & 0x01);
     const uint8_t b1 = static_cast<uint8_t>((hi >> bit) & 0x01);
@@ -298,7 +298,7 @@ uint8_t PPU::apply_palette(uint8_t palette_reg, uint8_t color_id) const {
 
 void PPU::begin_dma(uint8_t source_high) {
     this->dma_active = true;
-    this->dma_source_base = static_cast<uint16_t>(source_high) << 8;
+    this->dma_source_base = static_cast<uint16_t>(static_cast<uint16_t>(source_high) << 8U);
     this->dma_index = 0;
     this->dma_dot_counter = 0;
 }
@@ -312,9 +312,9 @@ void PPU::tick_dma_one_dot() {
 
     if (this->dma_index < 0x00A0) {
         const uint16_t src = static_cast<uint16_t>(this->dma_source_base + this->dma_index);
-        const uint8_t value = this->memory.read_byte_unrestricted(src);
+        const uint8_t value = this->memory_.read_byte_unrestricted(src);
         const uint16_t dst = static_cast<uint16_t>(0xFE00 + this->dma_index);
-        this->memory.write_oam_raw(dst, value);
+        this->memory_.write_oam_raw(dst, value);
         this->dma_index += 1;
     }
 
@@ -323,17 +323,17 @@ void PPU::tick_dma_one_dot() {
     }
 }
 
-uint8_t PPU::get_lcdc() { return this->memory.read_byte(0xFF40); }
-void PPU::set_lcdc(uint8_t value) { this->memory.write_byte(0xFF40, value); }
+uint8_t PPU::get_lcdc() { return this->memory_.read_byte(0xFF40); }
+void PPU::set_lcdc(uint8_t value) { this->memory_.write_byte(0xFF40, value); }
 
-uint8_t PPU::get_ly() { return this->memory.read_byte(0xFF44); }
-void PPU::set_ly(uint8_t value) { this->memory.write_byte(0xFF44, value); }
+uint8_t PPU::get_ly() { return this->memory_.read_byte(0xFF44); }
+void PPU::set_ly(uint8_t value) { this->memory_.write_byte(0xFF44, value); }
 
-uint8_t PPU::get_lyc() { return this->memory.read_byte(0xFF45); }
-void PPU::set_lyc(uint8_t value) { this->memory.write_byte(0xFF45, value); }
+uint8_t PPU::get_lyc() { return this->memory_.read_byte(0xFF45); }
+void PPU::set_lyc(uint8_t value) { this->memory_.write_byte(0xFF45, value); }
 
-uint8_t PPU::get_stat() { return this->memory.read_byte(0xFF41); }
-void PPU::set_stat(uint8_t value) { this->memory.write_byte(0xFF41, value); }
+uint8_t PPU::get_stat() { return this->memory_.read_byte(0xFF41); }
+void PPU::set_stat(uint8_t value) { this->memory_.write_byte(0xFF41, value); }
 
 uint8_t PPU::get_ppu_mode() {
     uint8_t stat = this->get_stat();
@@ -345,23 +345,23 @@ void PPU::set_ppu_mode(uint8_t mode) {
     this->set_stat(stat);
 }
 
-uint8_t PPU::get_scy() { return this->memory.read_byte(0xFF42); }
-void PPU::set_scy(uint8_t value) { this->memory.write_byte(0xFF42, value); }
+uint8_t PPU::get_scy() { return this->memory_.read_byte(0xFF42); }
+void PPU::set_scy(uint8_t value) { this->memory_.write_byte(0xFF42, value); }
 
-uint8_t PPU::get_scx() { return this->memory.read_byte(0xFF43); }
-void PPU::set_scx(uint8_t value) { this->memory.write_byte(0xFF43, value); }
+uint8_t PPU::get_scx() { return this->memory_.read_byte(0xFF43); }
+void PPU::set_scx(uint8_t value) { this->memory_.write_byte(0xFF43, value); }
 
-uint8_t PPU::get_wy() { return this->memory.read_byte(0xFF4A); }
-void PPU::set_wy(uint8_t value) { this->memory.write_byte(0xFF4A, value); }
+uint8_t PPU::get_wy() { return this->memory_.read_byte(0xFF4A); }
+void PPU::set_wy(uint8_t value) { this->memory_.write_byte(0xFF4A, value); }
 
-uint8_t PPU::get_wx() { return this->memory.read_byte(0xFF4B); }
-void PPU::set_wx(uint8_t value) { this->memory.write_byte(0xFF4B, value); }
+uint8_t PPU::get_wx() { return this->memory_.read_byte(0xFF4B); }
+void PPU::set_wx(uint8_t value) { this->memory_.write_byte(0xFF4B, value); }
 
-uint8_t PPU::get_bgp() { return this->memory.read_byte(0xFF47); }
-void PPU::set_bgp(uint8_t value) { this->memory.write_byte(0xFF47, value); }
+uint8_t PPU::get_bgp() { return this->memory_.read_byte(0xFF47); }
+void PPU::set_bgp(uint8_t value) { this->memory_.write_byte(0xFF47, value); }
 
-uint8_t PPU::get_obp0() { return this->memory.read_byte(0xFF48); }
-void PPU::set_obp0(uint8_t value) { this->memory.write_byte(0xFF48, value); }
+uint8_t PPU::get_obp0() { return this->memory_.read_byte(0xFF48); }
+void PPU::set_obp0(uint8_t value) { this->memory_.write_byte(0xFF48, value); }
 
-uint8_t PPU::get_obp1() { return this->memory.read_byte(0xFF49); }
-void PPU::set_obp1(uint8_t value) { this->memory.write_byte(0xFF49, value); }
+uint8_t PPU::get_obp1() { return this->memory_.read_byte(0xFF49); }
+void PPU::set_obp1(uint8_t value) { this->memory_.write_byte(0xFF49, value); }

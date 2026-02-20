@@ -10,19 +10,19 @@
 #include "stack.h"
 
 #include <SDL2/SDL.h>
-#include <assert.h>
+#include <cassert>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
 
 CPU::CPU(Registers &registers, Memory &memory, Stack &stack, IDU &idu, ALU &alu, BMI &bmi, PPU &ppu)
-    : registers(registers), memory(memory), stack(stack), idu(idu), alu(alu), bmi(bmi), ppu(ppu) {
+    : registers_(registers), memory_(memory), stack_(stack), idu_(idu), alu_(alu), bmi_(bmi), ppu_(ppu) {
     this->init(); // Initialize opcode tables
 }
 
 uint32_t CPU::step() {
-    const uint8_t pending = static_cast<uint8_t>(this->memory.get_ie() & this->memory.get_if() & 0x1F);
+    const uint8_t pending = static_cast<uint8_t>(this->memory_.get_ie() & this->memory_.get_if() & 0x1F);
     if (this->stopped && pending != 0) {
         this->stopped = false;
     }
@@ -34,10 +34,10 @@ uint32_t CPU::step() {
 
     const uint64_t before = this->tstates;
 
-    uint8_t opcode = this->memory.read_byte(this->registers.PC);
+    uint8_t opcode = this->memory_.read_byte(this->registers_.PC);
     if (this->halt_bug_active) {
         // HALT bug: one instruction executes with opcode fetch but without PC increment.
-        this->registers.PC = static_cast<uint16_t>(this->registers.PC - 1);
+        this->registers_.PC = static_cast<uint16_t>(this->registers_.PC - 1);
         this->halt_bug_active = false;
     }
     this->exec(opcode);
@@ -46,7 +46,7 @@ uint32_t CPU::step() {
     if (this->ime_enable_delay > 0) {
         this->ime_enable_delay -= 1;
         if (this->ime_enable_delay == 0) {
-            this->registers.IME = true;
+            this->registers_.IME = true;
         }
     }
 
@@ -59,22 +59,22 @@ void CPU::exec(uint8_t opcode) {
 }
 
 void CPU::service_interrupts() {
-    const uint8_t IE = this->memory.get_ie();
-    const uint8_t IF = this->memory.get_if();
+    const uint8_t IE = this->memory_.get_ie();
+    const uint8_t IF = this->memory_.get_if();
 
     if ((IE & IF) == 0) return;
     this->halted = false;
     this->stopped = false;
 
-    if (!this->registers.IME) return;
-    this->registers.IME = false;
+    if (!this->registers_.IME) return;
+    this->registers_.IME = false;
 
     auto service = [&](uint8_t bit, uint16_t vector) -> bool {
-        if (((IE & IF) & (1u << bit)) == 0) return false;                         // Not requested / enabled
-        this->memory.write_byte(0xFF0F, static_cast<uint8_t>(IF & ~(1u << bit))); // Clear IF bit
+        if (((IE & IF) & (1u << bit)) == 0) return false;                          // Not requested / enabled
+        this->memory_.write_byte(0xFF0F, static_cast<uint8_t>(IF & ~(1u << bit))); // Clear IF bit
 
-        this->stack.push_word(this->registers.PC);
-        this->registers.PC = vector;
+        this->stack_.push_word(this->registers_.PC);
+        this->registers_.PC = vector;
 
         this->tstates += 20;
         return true;
@@ -90,7 +90,7 @@ void CPU::service_interrupts() {
 // default unimplemented opcode handler =======
 void CPU::op_unimplemented() {
     std::stringstream ss;
-    ss << "Unimplemented opcode at PC=0x" << std::hex << std::setw(4) << std::setfill('0') << this->registers.PC;
+    ss << "Unimplemented opcode at PC=0x" << std::hex << std::setw(4) << std::setfill('0') << this->registers_.PC;
     throw std::runtime_error(ss.str());
     return;
 }
@@ -109,7 +109,7 @@ void CPU::op_unimplemented() {
 // 1 4
 // - - - -
 void CPU::op_nop() {
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -118,10 +118,10 @@ void CPU::op_nop() {
 // 3 12
 // - - - -
 void CPU::op_ld_bc_n16() {
-    uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.set_bc(n16);
+    uint16_t n16 = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.set_bc(n16);
 
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -130,9 +130,9 @@ void CPU::op_ld_bc_n16() {
 // 1 8
 // - - - -
 void CPU::op_ld_bcm_a() {
-    this->memory.write_byte(this->registers.get_bc(), this->registers.A);
+    this->memory_.write_byte(this->registers_.get_bc(), this->registers_.A);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -141,9 +141,9 @@ void CPU::op_ld_bcm_a() {
 // 1 8
 // - - - -
 void CPU::op_inc_bc() {
-    this->registers.set_bc(static_cast<uint16_t>(this->registers.get_bc() + 1));
+    this->registers_.set_bc(static_cast<uint16_t>(this->registers_.get_bc() + 1));
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -152,9 +152,9 @@ void CPU::op_inc_bc() {
 // 1 4
 // Z 0 H -
 void CPU::op_inc_b() {
-    this->idu.increment_r8(this->registers.B);
+    this->idu_.increment_r8(this->registers_.B);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -163,9 +163,9 @@ void CPU::op_inc_b() {
 // 1 4
 // Z 1 H -
 void CPU::op_dec_b() {
-    this->idu.decrement_r8(this->registers.B);
+    this->idu_.decrement_r8(this->registers_.B);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -174,10 +174,10 @@ void CPU::op_dec_b() {
 // 2 8
 // - - - -
 void CPU::op_ld_b_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.B = n8;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.B = n8;
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -186,9 +186,9 @@ void CPU::op_ld_b_n8() {
 // 1 4
 // 0 0 0 C
 void CPU::op_rlca() {
-    this->bmi.rlca();
+    this->bmi_.rlca();
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -197,10 +197,10 @@ void CPU::op_rlca() {
 // 3 20
 // - - - -
 void CPU::op_ld_a16m_sp() {
-    uint16_t a16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->memory.write_word(a16, this->registers.SP);
+    uint16_t a16 = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->memory_.write_word(a16, this->registers_.SP);
 
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 20;
 }
 
@@ -209,9 +209,9 @@ void CPU::op_ld_a16m_sp() {
 // 1 8
 // - 0 H C
 void CPU::op_add_hl_bc() {
-    this->alu.add_u16(this->registers.get_bc());
+    this->alu_.add_u16(this->registers_.get_bc());
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -220,9 +220,9 @@ void CPU::op_add_hl_bc() {
 // 1 8
 // - - - -
 void CPU::op_ld_a_bcm() {
-    this->registers.A = this->memory.read_byte(this->registers.get_bc());
+    this->registers_.A = this->memory_.read_byte(this->registers_.get_bc());
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -231,9 +231,9 @@ void CPU::op_ld_a_bcm() {
 // 1 8
 // - - - -
 void CPU::op_dec_bc() {
-    this->registers.set_bc(static_cast<uint16_t>(this->registers.get_bc() - 1));
+    this->registers_.set_bc(static_cast<uint16_t>(this->registers_.get_bc() - 1));
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -242,9 +242,9 @@ void CPU::op_dec_bc() {
 // 1 4
 // Z 0 H -
 void CPU::op_inc_c() {
-    this->idu.increment_r8(this->registers.C);
+    this->idu_.increment_r8(this->registers_.C);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -253,9 +253,9 @@ void CPU::op_inc_c() {
 // 1 4
 // Z 1 H -
 void CPU::op_dec_c() {
-    this->idu.decrement_r8(this->registers.C);
+    this->idu_.decrement_r8(this->registers_.C);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -264,10 +264,10 @@ void CPU::op_dec_c() {
 // 2 8
 // - - - -
 void CPU::op_ld_c_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.C = n8;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.C = n8;
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -276,9 +276,9 @@ void CPU::op_ld_c_n8() {
 // 1 4
 // 0 0 0 C
 void CPU::op_rrca() {
-    this->bmi.rrca();
+    this->bmi_.rrca();
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -288,9 +288,9 @@ void CPU::op_rrca() {
 // - - - -
 void CPU::op_stop_n8() {
     this->stopped = true;
-    this->memory.write_byte(0xFF04, 0x00); // reset DIV register
+    this->memory_.write_byte(0xFF04, 0x00); // reset DIV register
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 4;
 }
 
@@ -299,10 +299,10 @@ void CPU::op_stop_n8() {
 // 3 12
 // - - - -
 void CPU::op_ld_de_n16() {
-    uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.set_de(n16);
+    uint16_t n16 = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.set_de(n16);
 
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -311,9 +311,9 @@ void CPU::op_ld_de_n16() {
 // 1 8
 // - - - -
 void CPU::op_ld_dem_a() {
-    this->memory.write_byte(this->registers.get_de(), this->registers.A);
+    this->memory_.write_byte(this->registers_.get_de(), this->registers_.A);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -322,9 +322,9 @@ void CPU::op_ld_dem_a() {
 // 1 8
 // - - - -
 void CPU::op_inc_de() {
-    this->registers.set_de(static_cast<uint16_t>(this->registers.get_de() + 1));
+    this->registers_.set_de(static_cast<uint16_t>(this->registers_.get_de() + 1));
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -333,9 +333,9 @@ void CPU::op_inc_de() {
 // 1 4
 // Z 0 H -
 void CPU::op_inc_d() {
-    this->idu.increment_r8(this->registers.D);
+    this->idu_.increment_r8(this->registers_.D);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -344,9 +344,9 @@ void CPU::op_inc_d() {
 // 1 4
 // Z 1 H -
 void CPU::op_dec_d() {
-    this->idu.decrement_r8(this->registers.D);
+    this->idu_.decrement_r8(this->registers_.D);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -355,10 +355,10 @@ void CPU::op_dec_d() {
 // 2 8
 // - - - -
 void CPU::op_ld_d_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.D = n8;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.D = n8;
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -367,9 +367,9 @@ void CPU::op_ld_d_n8() {
 // 1 4
 // 0 0 0 C
 void CPU::op_rla() {
-    this->bmi.rla();
+    this->bmi_.rla();
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -378,8 +378,8 @@ void CPU::op_rla() {
 // 2 12
 // - - - -
 void CPU::op_jr_e8() {
-    int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-    this->registers.PC += (2 + offset);
+    int8_t offset = static_cast<int8_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+    this->registers_.PC += static_cast<uint16_t>(2 + offset);
     this->tstates += 12;
 }
 
@@ -388,9 +388,9 @@ void CPU::op_jr_e8() {
 // 1 8
 // - 0 H C
 void CPU::op_add_hl_de() {
-    this->alu.add_u16(this->registers.get_de());
+    this->alu_.add_u16(this->registers_.get_de());
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -399,9 +399,9 @@ void CPU::op_add_hl_de() {
 // 1 8
 // - - - -
 void CPU::op_ld_a_dem() {
-    this->registers.A = this->memory.read_byte(this->registers.get_de());
+    this->registers_.A = this->memory_.read_byte(this->registers_.get_de());
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -410,9 +410,9 @@ void CPU::op_ld_a_dem() {
 // 1 8
 // - - - -
 void CPU::op_dec_de() {
-    this->registers.set_de(static_cast<uint16_t>(this->registers.get_de() - 1));
+    this->registers_.set_de(static_cast<uint16_t>(this->registers_.get_de() - 1));
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -421,9 +421,9 @@ void CPU::op_dec_de() {
 // 1 4
 // Z 0 H -
 void CPU::op_inc_e() {
-    this->idu.increment_r8(this->registers.E);
+    this->idu_.increment_r8(this->registers_.E);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -432,9 +432,9 @@ void CPU::op_inc_e() {
 // 1 4
 // Z 1 H -
 void CPU::op_dec_e() {
-    this->idu.decrement_r8(this->registers.E);
+    this->idu_.decrement_r8(this->registers_.E);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -443,10 +443,10 @@ void CPU::op_dec_e() {
 // 2 8
 // - - - -
 void CPU::op_ld_e_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.E = n8;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.E = n8;
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -455,9 +455,9 @@ void CPU::op_ld_e_n8() {
 // 1 4
 // 0 0 0 C
 void CPU::op_rra() {
-    this->bmi.rra();
+    this->bmi_.rra();
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -466,13 +466,13 @@ void CPU::op_rra() {
 // 2 12/8
 // - - - -
 void CPU::op_jr_nz_e8() {
-    if (!this->registers.get_flag_z()) {
-        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += (2 + offset);
+    if (!this->registers_.get_flag_z()) {
+        int8_t offset = static_cast<int8_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+        this->registers_.PC += static_cast<uint16_t>(2 + offset);
         this->tstates += 12;
         return;
     }
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -481,10 +481,10 @@ void CPU::op_jr_nz_e8() {
 // 3 12
 // - - - -
 void CPU::op_ld_hl_a16() {
-    uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.set_hl(n16);
+    uint16_t n16 = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.set_hl(n16);
 
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -493,10 +493,10 @@ void CPU::op_ld_hl_a16() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlim_a() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.A);
-    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.A);
+    this->registers_.set_hl(static_cast<uint16_t>(this->registers_.get_hl() + 1));
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -505,9 +505,9 @@ void CPU::op_ld_hlim_a() {
 // 1 8
 // - - - -
 void CPU::op_inc_hl() {
-    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
+    this->registers_.set_hl(static_cast<uint16_t>(this->registers_.get_hl() + 1));
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -516,9 +516,9 @@ void CPU::op_inc_hl() {
 // 1 4
 // Z 0 H -
 void CPU::op_inc_h() {
-    this->idu.increment_r8(this->registers.H);
+    this->idu_.increment_r8(this->registers_.H);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -527,9 +527,9 @@ void CPU::op_inc_h() {
 // 1 4
 // Z 1 H -
 void CPU::op_dec_h() {
-    this->idu.decrement_r8(this->registers.H);
+    this->idu_.decrement_r8(this->registers_.H);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -538,10 +538,10 @@ void CPU::op_dec_h() {
 // 2 8
 // - - - -
 void CPU::op_ld_h_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.H = n8;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.H = n8;
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -550,18 +550,18 @@ void CPU::op_ld_h_n8() {
 // 1 4
 // Z - H C
 void CPU::op_daa() {
-    uint8_t a = this->registers.A;
+    uint8_t a = this->registers_.A;
     uint8_t adjust = 0;
-    bool carry = this->registers.get_flag_c();
-    bool subtract = this->registers.get_flag_n();
+    bool carry = this->registers_.get_flag_c();
+    bool subtract = this->registers_.get_flag_n();
 
     if (subtract) {
-        if (this->registers.get_flag_h()) adjust |= 0x06;
+        if (this->registers_.get_flag_h()) adjust |= 0x06;
         if (carry) adjust |= 0x60;
         a = static_cast<uint8_t>(a - adjust);
         // carry flag unaffected (remains as before)
     } else {
-        if (this->registers.get_flag_h() || (a & 0x0F) > 9) adjust |= 0x06;
+        if (this->registers_.get_flag_h() || (a & 0x0F) > 9) adjust |= 0x06;
         if (carry || a > 0x99) {
             adjust |= 0x60;
             carry = true;
@@ -571,13 +571,13 @@ void CPU::op_daa() {
         a = static_cast<uint8_t>(a + adjust);
     }
 
-    this->registers.A = a;
-    this->registers.set_flag_z(a == 0);
-    this->registers.set_flag_n(subtract);
-    this->registers.set_flag_h(false);
-    this->registers.set_flag_c(carry);
+    this->registers_.A = a;
+    this->registers_.set_flag_z(a == 0);
+    this->registers_.set_flag_n(subtract);
+    this->registers_.set_flag_h(false);
+    this->registers_.set_flag_c(carry);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -586,13 +586,13 @@ void CPU::op_daa() {
 // 2 12/8
 // - - - -
 void CPU::op_jr_z_e8() {
-    if (this->registers.get_flag_z()) {
-        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += (2 + offset);
+    if (this->registers_.get_flag_z()) {
+        int8_t offset = static_cast<int8_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+        this->registers_.PC += static_cast<uint16_t>(2 + offset);
         this->tstates += 12;
         return;
     }
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -601,9 +601,9 @@ void CPU::op_jr_z_e8() {
 // 1 8
 // - 0 H C
 void CPU::op_add_hl_hl() {
-    this->alu.add_u16(this->registers.get_hl());
+    this->alu_.add_u16(this->registers_.get_hl());
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -612,10 +612,10 @@ void CPU::op_add_hl_hl() {
 // 1 8
 // - - - -
 void CPU::op_ld_a_hlim() {
-    this->registers.A = this->memory.read_byte(this->registers.get_hl());
-    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() + 1));
+    this->registers_.A = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.set_hl(static_cast<uint16_t>(this->registers_.get_hl() + 1));
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -624,8 +624,8 @@ void CPU::op_ld_a_hlim() {
 // 1 8
 // - - - -
 void CPU::op_dec_hl() {
-    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
-    this->registers.PC += 1;
+    this->registers_.set_hl(static_cast<uint16_t>(this->registers_.get_hl() - 1));
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -634,8 +634,8 @@ void CPU::op_dec_hl() {
 // 1 4
 // Z 0 H -
 void CPU::op_inc_l() {
-    this->idu.increment_r8(this->registers.L);
-    this->registers.PC += 1;
+    this->idu_.increment_r8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -644,8 +644,8 @@ void CPU::op_inc_l() {
 // 1 4
 // Z 1 H -
 void CPU::op_dec_l() {
-    this->idu.decrement_r8(this->registers.L);
-    this->registers.PC += 1;
+    this->idu_.decrement_r8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -654,9 +654,9 @@ void CPU::op_dec_l() {
 // 2 8
 // - - - -
 void CPU::op_ld_l_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.L = n8;
-    this->registers.PC += 2;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.L = n8;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -665,13 +665,13 @@ void CPU::op_ld_l_n8() {
 // 1 4
 // - 1 1 -
 void CPU::op_cpl() {
-    this->registers.A = ~this->registers.A;
+    this->registers_.A = ~this->registers_.A;
 
     // Flags
-    this->registers.set_flag_n(true);
-    this->registers.set_flag_h(true);
+    this->registers_.set_flag_n(true);
+    this->registers_.set_flag_h(true);
 
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -680,13 +680,13 @@ void CPU::op_cpl() {
 // 2 12/8
 // - - - -
 void CPU::op_jr_nc_e8() {
-    if (!this->registers.get_flag_c()) {
-        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += (2 + offset);
+    if (!this->registers_.get_flag_c()) {
+        int8_t offset = static_cast<int8_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+        this->registers_.PC += static_cast<uint16_t>(2 + offset);
         this->tstates += 12;
         return;
     }
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -695,9 +695,9 @@ void CPU::op_jr_nc_e8() {
 // 3 12
 // - - - -
 void CPU::op_ld_sp_a16() {
-    uint16_t n16 = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.SP = n16;
-    this->registers.PC += 3;
+    uint16_t n16 = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.SP = n16;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -706,9 +706,9 @@ void CPU::op_ld_sp_a16() {
 // 1 8
 // - - - -
 void CPU::op_ld_hldm_a() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.A);
-    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.A);
+    this->registers_.set_hl(static_cast<uint16_t>(this->registers_.get_hl() - 1));
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -717,8 +717,8 @@ void CPU::op_ld_hldm_a() {
 // 1 8
 // - - - -
 void CPU::op_inc_sp() {
-    this->registers.SP = static_cast<uint16_t>(this->registers.SP + 1);
-    this->registers.PC += 1;
+    this->registers_.SP = static_cast<uint16_t>(this->registers_.SP + 1);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -727,8 +727,8 @@ void CPU::op_inc_sp() {
 // 1 12
 // Z 0 H -
 void CPU::op_inc_hlm() {
-    this->idu.increment_mem8(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->idu_.increment_mem8(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 12;
 }
 
@@ -737,8 +737,8 @@ void CPU::op_inc_hlm() {
 // 1 12
 // Z 1 H -
 void CPU::op_dec_hlm() {
-    this->idu.decrement_mem8(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->idu_.decrement_mem8(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 12;
 }
 
@@ -747,9 +747,9 @@ void CPU::op_dec_hlm() {
 // 2 12
 // - - - -
 void CPU::op_ld_hlm_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->memory.write_byte(this->registers.get_hl(), n8);
-    this->registers.PC += 2;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->memory_.write_byte(this->registers_.get_hl(), n8);
+    this->registers_.PC += 2;
     this->tstates += 12;
 }
 
@@ -758,10 +758,10 @@ void CPU::op_ld_hlm_n8() {
 // 1 4
 // - 0 0 1
 void CPU::op_scf() {
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h(false);
-    this->registers.set_flag_c(true);
-    this->registers.PC += 1;
+    this->registers_.set_flag_n(false);
+    this->registers_.set_flag_h(false);
+    this->registers_.set_flag_c(true);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -770,13 +770,13 @@ void CPU::op_scf() {
 // 2 12/8
 // - - - -
 void CPU::op_jr_c_e8() {
-    if (this->registers.get_flag_c()) {
-        int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-        this->registers.PC += (2 + offset);
+    if (this->registers_.get_flag_c()) {
+        int8_t offset = static_cast<int8_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+        this->registers_.PC += static_cast<uint16_t>(2 + offset);
         this->tstates += 12;
         return;
     }
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -785,8 +785,8 @@ void CPU::op_jr_c_e8() {
 // 1 8
 // - 0 H C
 void CPU::op_add_hl_sp() {
-    this->alu.add_u16(this->registers.SP);
-    this->registers.PC += 1;
+    this->alu_.add_u16(this->registers_.SP);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -795,9 +795,9 @@ void CPU::op_add_hl_sp() {
 // 1 8
 // - - - -
 void CPU::op_ld_a_hldm() {
-    this->registers.A = this->memory.read_byte(this->registers.get_hl());
-    this->registers.set_hl(static_cast<uint16_t>(this->registers.get_hl() - 1));
-    this->registers.PC += 1;
+    this->registers_.A = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.set_hl(static_cast<uint16_t>(this->registers_.get_hl() - 1));
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -806,8 +806,8 @@ void CPU::op_ld_a_hldm() {
 // 1 8
 // - - - -
 void CPU::op_dec_sp() {
-    this->registers.SP = static_cast<uint16_t>(this->registers.SP - 1);
-    this->registers.PC += 1;
+    this->registers_.SP = static_cast<uint16_t>(this->registers_.SP - 1);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -816,8 +816,8 @@ void CPU::op_dec_sp() {
 // 1 4
 // Z 0 H -
 void CPU::op_inc_a() {
-    this->idu.increment_r8(this->registers.A);
-    this->registers.PC += 1;
+    this->idu_.increment_r8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -826,8 +826,8 @@ void CPU::op_inc_a() {
 // 1 4
 // Z 1 H -
 void CPU::op_dec_a() {
-    this->idu.decrement_r8(this->registers.A);
-    this->registers.PC += 1;
+    this->idu_.decrement_r8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -836,9 +836,9 @@ void CPU::op_dec_a() {
 // 2 8
 // - - - -
 void CPU::op_ld_a_n8() {
-    uint8_t n8 = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.A = n8;
-    this->registers.PC += 2;
+    uint8_t n8 = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.A = n8;
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -847,10 +847,10 @@ void CPU::op_ld_a_n8() {
 // 1 4
 // - 0 0 C
 void CPU::op_ccf() {
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h(false);
-    this->registers.set_flag_c(!this->registers.get_flag_c());
-    this->registers.PC += 1;
+    this->registers_.set_flag_n(false);
+    this->registers_.set_flag_h(false);
+    this->registers_.set_flag_c(!this->registers_.get_flag_c());
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -859,8 +859,8 @@ void CPU::op_ccf() {
 // 1 4
 // - - - -
 void CPU::op_ld_b_b() {
-    this->registers.B = this->registers.B;
-    this->registers.PC += 1;
+    this->registers_.B = this->registers_.B;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -869,8 +869,8 @@ void CPU::op_ld_b_b() {
 // 1 4
 // - - - -
 void CPU::op_ld_b_c() {
-    this->registers.B = this->registers.C;
-    this->registers.PC += 1;
+    this->registers_.B = this->registers_.C;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -879,8 +879,8 @@ void CPU::op_ld_b_c() {
 // 1 4
 // - - - -
 void CPU::op_ld_b_d() {
-    this->registers.B = this->registers.D;
-    this->registers.PC += 1;
+    this->registers_.B = this->registers_.D;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -889,8 +889,8 @@ void CPU::op_ld_b_d() {
 // 1 4
 // - - - -
 void CPU::op_ld_b_e() {
-    this->registers.B = this->registers.E;
-    this->registers.PC += 1;
+    this->registers_.B = this->registers_.E;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -899,8 +899,8 @@ void CPU::op_ld_b_e() {
 // 1 4
 // - - - -
 void CPU::op_ld_b_h() {
-    this->registers.B = this->registers.H;
-    this->registers.PC += 1;
+    this->registers_.B = this->registers_.H;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -909,8 +909,8 @@ void CPU::op_ld_b_h() {
 // 1 4
 // - - - -
 void CPU::op_ld_b_l() {
-    this->registers.B = this->registers.L;
-    this->registers.PC += 1;
+    this->registers_.B = this->registers_.L;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -919,8 +919,8 @@ void CPU::op_ld_b_l() {
 // 1 8
 // - - - -
 void CPU::op_ld_b_hlm() {
-    this->registers.B = this->memory.read_byte(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->registers_.B = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -929,8 +929,8 @@ void CPU::op_ld_b_hlm() {
 // 1 4
 // - - - -
 void CPU::op_ld_b_a() {
-    this->registers.B = this->registers.A;
-    this->registers.PC += 1;
+    this->registers_.B = this->registers_.A;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -939,8 +939,8 @@ void CPU::op_ld_b_a() {
 // 1 4
 // - - - -
 void CPU::op_ld_c_b() {
-    this->registers.C = this->registers.B;
-    this->registers.PC += 1;
+    this->registers_.C = this->registers_.B;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -949,8 +949,8 @@ void CPU::op_ld_c_b() {
 // 1 4
 // - - - -
 void CPU::op_ld_c_c() {
-    this->registers.C = this->registers.C;
-    this->registers.PC += 1;
+    this->registers_.C = this->registers_.C;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -959,8 +959,8 @@ void CPU::op_ld_c_c() {
 // 1 4
 // - - - -
 void CPU::op_ld_c_d() {
-    this->registers.C = this->registers.D;
-    this->registers.PC += 1;
+    this->registers_.C = this->registers_.D;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -969,8 +969,8 @@ void CPU::op_ld_c_d() {
 // 1 4
 // - - - -
 void CPU::op_ld_c_e() {
-    this->registers.C = this->registers.E;
-    this->registers.PC += 1;
+    this->registers_.C = this->registers_.E;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -979,8 +979,8 @@ void CPU::op_ld_c_e() {
 // 1 4
 // - - - -
 void CPU::op_ld_c_h() {
-    this->registers.C = this->registers.H;
-    this->registers.PC += 1;
+    this->registers_.C = this->registers_.H;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -989,8 +989,8 @@ void CPU::op_ld_c_h() {
 // 1 4
 // - - - -
 void CPU::op_ld_c_l() {
-    this->registers.C = this->registers.L;
-    this->registers.PC += 1;
+    this->registers_.C = this->registers_.L;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -999,8 +999,8 @@ void CPU::op_ld_c_l() {
 // 1 8
 // - - - -
 void CPU::op_ld_c_hlm() {
-    this->registers.C = this->memory.read_byte(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->registers_.C = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1009,8 +1009,8 @@ void CPU::op_ld_c_hlm() {
 // 1 4
 // - - - -
 void CPU::op_ld_c_a() {
-    this->registers.C = this->registers.A;
-    this->registers.PC += 1;
+    this->registers_.C = this->registers_.A;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1019,8 +1019,8 @@ void CPU::op_ld_c_a() {
 // 1 4
 // - - - -
 void CPU::op_ld_d_b() {
-    this->registers.D = this->registers.B;
-    this->registers.PC += 1;
+    this->registers_.D = this->registers_.B;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1029,8 +1029,8 @@ void CPU::op_ld_d_b() {
 // 1 4
 // - - - -
 void CPU::op_ld_d_c() {
-    this->registers.D = this->registers.C;
-    this->registers.PC += 1;
+    this->registers_.D = this->registers_.C;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1039,8 +1039,8 @@ void CPU::op_ld_d_c() {
 // 1 4
 // - - - -
 void CPU::op_ld_d_d() {
-    this->registers.D = this->registers.D;
-    this->registers.PC += 1;
+    this->registers_.D = this->registers_.D;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1049,8 +1049,8 @@ void CPU::op_ld_d_d() {
 // 1 4
 // - - - -
 void CPU::op_ld_d_e() {
-    this->registers.D = this->registers.E;
-    this->registers.PC += 1;
+    this->registers_.D = this->registers_.E;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1059,8 +1059,8 @@ void CPU::op_ld_d_e() {
 // 1 4
 // - - - -
 void CPU::op_ld_d_h() {
-    this->registers.D = this->registers.H;
-    this->registers.PC += 1;
+    this->registers_.D = this->registers_.H;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1069,8 +1069,8 @@ void CPU::op_ld_d_h() {
 // 1 4
 // - - - -
 void CPU::op_ld_d_l() {
-    this->registers.D = this->registers.L;
-    this->registers.PC += 1;
+    this->registers_.D = this->registers_.L;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1079,8 +1079,8 @@ void CPU::op_ld_d_l() {
 // 1 8
 // - - - -
 void CPU::op_ld_d_hlm() {
-    this->registers.D = this->memory.read_byte(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->registers_.D = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1089,8 +1089,8 @@ void CPU::op_ld_d_hlm() {
 // 1 4
 // - - - -
 void CPU::op_ld_d_a() {
-    this->registers.D = this->registers.A;
-    this->registers.PC += 1;
+    this->registers_.D = this->registers_.A;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1099,8 +1099,8 @@ void CPU::op_ld_d_a() {
 // 1 4
 // - - - -
 void CPU::op_ld_e_b() {
-    this->registers.E = this->registers.B;
-    this->registers.PC += 1;
+    this->registers_.E = this->registers_.B;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1109,8 +1109,8 @@ void CPU::op_ld_e_b() {
 // 1 4
 // - - - -
 void CPU::op_ld_e_c() {
-    this->registers.E = this->registers.C;
-    this->registers.PC += 1;
+    this->registers_.E = this->registers_.C;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1119,8 +1119,8 @@ void CPU::op_ld_e_c() {
 // 1 4
 // - - - -
 void CPU::op_ld_e_d() {
-    this->registers.E = this->registers.D;
-    this->registers.PC += 1;
+    this->registers_.E = this->registers_.D;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1129,8 +1129,8 @@ void CPU::op_ld_e_d() {
 // 1 4
 // - - - -
 void CPU::op_ld_e_e() {
-    this->registers.E = this->registers.E;
-    this->registers.PC += 1;
+    this->registers_.E = this->registers_.E;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1139,8 +1139,8 @@ void CPU::op_ld_e_e() {
 // 1 4
 // - - - -
 void CPU::op_ld_e_h() {
-    this->registers.E = this->registers.H;
-    this->registers.PC += 1;
+    this->registers_.E = this->registers_.H;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1149,8 +1149,8 @@ void CPU::op_ld_e_h() {
 // 1 4
 // - - - -
 void CPU::op_ld_e_l() {
-    this->registers.E = this->registers.L;
-    this->registers.PC += 1;
+    this->registers_.E = this->registers_.L;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1159,8 +1159,8 @@ void CPU::op_ld_e_l() {
 // 1 8
 // - - - -
 void CPU::op_ld_e_hlm() {
-    this->registers.E = this->memory.read_byte(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->registers_.E = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1169,8 +1169,8 @@ void CPU::op_ld_e_hlm() {
 // 1 4
 // - - - -
 void CPU::op_ld_e_a() {
-    this->registers.E = this->registers.A;
-    this->registers.PC += 1;
+    this->registers_.E = this->registers_.A;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1179,8 +1179,8 @@ void CPU::op_ld_e_a() {
 // 1 4
 // - - - -
 void CPU::op_ld_h_b() {
-    this->registers.H = this->registers.B;
-    this->registers.PC += 1;
+    this->registers_.H = this->registers_.B;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1189,8 +1189,8 @@ void CPU::op_ld_h_b() {
 // 1 4
 // - - - -
 void CPU::op_ld_h_c() {
-    this->registers.H = this->registers.C;
-    this->registers.PC += 1;
+    this->registers_.H = this->registers_.C;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1199,8 +1199,8 @@ void CPU::op_ld_h_c() {
 // 1 4
 // - - - -
 void CPU::op_ld_h_d() {
-    this->registers.H = this->registers.D;
-    this->registers.PC += 1;
+    this->registers_.H = this->registers_.D;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1209,8 +1209,8 @@ void CPU::op_ld_h_d() {
 // 1 4
 // - - - -
 void CPU::op_ld_h_e() {
-    this->registers.H = this->registers.E;
-    this->registers.PC += 1;
+    this->registers_.H = this->registers_.E;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1219,8 +1219,8 @@ void CPU::op_ld_h_e() {
 // 1 4
 // - - - -
 void CPU::op_ld_h_h() {
-    this->registers.H = this->registers.H;
-    this->registers.PC += 1;
+    this->registers_.H = this->registers_.H;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1229,8 +1229,8 @@ void CPU::op_ld_h_h() {
 // 1 4
 // - - - -
 void CPU::op_ld_h_l() {
-    this->registers.H = this->registers.L;
-    this->registers.PC += 1;
+    this->registers_.H = this->registers_.L;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1239,8 +1239,8 @@ void CPU::op_ld_h_l() {
 // 1 8
 // - - - -
 void CPU::op_ld_h_hlm() {
-    this->registers.H = this->memory.read_byte(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->registers_.H = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1249,8 +1249,8 @@ void CPU::op_ld_h_hlm() {
 // 1 4
 // - - - -
 void CPU::op_ld_h_a() {
-    this->registers.H = this->registers.A;
-    this->registers.PC += 1;
+    this->registers_.H = this->registers_.A;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1259,8 +1259,8 @@ void CPU::op_ld_h_a() {
 // 1 4
 // - - - -
 void CPU::op_ld_l_b() {
-    this->registers.L = this->registers.B;
-    this->registers.PC += 1;
+    this->registers_.L = this->registers_.B;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1269,8 +1269,8 @@ void CPU::op_ld_l_b() {
 // 1 4
 // - - - -
 void CPU::op_ld_l_c() {
-    this->registers.L = this->registers.C;
-    this->registers.PC += 1;
+    this->registers_.L = this->registers_.C;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1279,8 +1279,8 @@ void CPU::op_ld_l_c() {
 // 1 4
 // - - - -
 void CPU::op_ld_l_d() {
-    this->registers.L = this->registers.D;
-    this->registers.PC += 1;
+    this->registers_.L = this->registers_.D;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1289,8 +1289,8 @@ void CPU::op_ld_l_d() {
 // 1 4
 // - - - -
 void CPU::op_ld_l_e() {
-    this->registers.L = this->registers.E;
-    this->registers.PC += 1;
+    this->registers_.L = this->registers_.E;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1299,8 +1299,8 @@ void CPU::op_ld_l_e() {
 // 1 4
 // - - - -
 void CPU::op_ld_l_h() {
-    this->registers.L = this->registers.H;
-    this->registers.PC += 1;
+    this->registers_.L = this->registers_.H;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1309,8 +1309,8 @@ void CPU::op_ld_l_h() {
 // 1 4
 // - - - -
 void CPU::op_ld_l_l() {
-    this->registers.L = this->registers.L;
-    this->registers.PC += 1;
+    this->registers_.L = this->registers_.L;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1319,8 +1319,8 @@ void CPU::op_ld_l_l() {
 // 1 8
 // - - - -
 void CPU::op_ld_l_hlm() {
-    this->registers.L = this->memory.read_byte(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->registers_.L = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1329,8 +1329,8 @@ void CPU::op_ld_l_hlm() {
 // 1 4
 // - - - -
 void CPU::op_ld_l_a() {
-    this->registers.L = this->registers.A;
-    this->registers.PC += 1;
+    this->registers_.L = this->registers_.A;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1339,8 +1339,8 @@ void CPU::op_ld_l_a() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlm_b() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.B);
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1349,8 +1349,8 @@ void CPU::op_ld_hlm_b() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlm_c() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.C);
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1359,8 +1359,8 @@ void CPU::op_ld_hlm_c() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlm_d() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.D);
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1369,8 +1369,8 @@ void CPU::op_ld_hlm_d() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlm_e() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.E);
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1379,8 +1379,8 @@ void CPU::op_ld_hlm_e() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlm_h() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.H);
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1389,8 +1389,8 @@ void CPU::op_ld_hlm_h() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlm_l() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.L);
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1399,16 +1399,16 @@ void CPU::op_ld_hlm_l() {
 // 1 4
 // - - - -
 void CPU::op_halt() {
-    const uint8_t pending = static_cast<uint8_t>(this->memory.get_ie() & this->memory.get_if() & 0x1F);
+    const uint8_t pending = static_cast<uint8_t>(this->memory_.get_ie() & this->memory_.get_if() & 0x1F);
 
     // HALT bug case: IME=0 and an interrupt is pending.
     // CPU does not actually enter halted state.
-    if (this->registers.IME == false && pending != 0) {
+    if (this->registers_.IME == false && pending != 0) {
         this->halt_bug_active = true;
     } else {
         this->halted = true;
     }
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1417,8 +1417,8 @@ void CPU::op_halt() {
 // 1 8
 // - - - -
 void CPU::op_ld_hlm_a() {
-    this->memory.write_byte(this->registers.get_hl(), this->registers.A);
-    this->registers.PC += 1;
+    this->memory_.write_byte(this->registers_.get_hl(), this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1427,8 +1427,8 @@ void CPU::op_ld_hlm_a() {
 // 1 4
 // - - - -
 void CPU::op_ld_a_b() {
-    this->registers.A = this->registers.B;
-    this->registers.PC += 1;
+    this->registers_.A = this->registers_.B;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1437,8 +1437,8 @@ void CPU::op_ld_a_b() {
 // 1 4
 // - - - -
 void CPU::op_ld_a_c() {
-    this->registers.A = this->registers.C;
-    this->registers.PC += 1;
+    this->registers_.A = this->registers_.C;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1447,8 +1447,8 @@ void CPU::op_ld_a_c() {
 // 1 4
 // - - - -
 void CPU::op_ld_a_d() {
-    this->registers.A = this->registers.D;
-    this->registers.PC += 1;
+    this->registers_.A = this->registers_.D;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1457,8 +1457,8 @@ void CPU::op_ld_a_d() {
 // 1 4
 // - - - -
 void CPU::op_ld_a_e() {
-    this->registers.A = this->registers.E;
-    this->registers.PC += 1;
+    this->registers_.A = this->registers_.E;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1467,8 +1467,8 @@ void CPU::op_ld_a_e() {
 // 1 4
 // - - - -
 void CPU::op_ld_a_h() {
-    this->registers.A = this->registers.H;
-    this->registers.PC += 1;
+    this->registers_.A = this->registers_.H;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1477,8 +1477,8 @@ void CPU::op_ld_a_h() {
 // 1 4
 // - - - -
 void CPU::op_ld_a_l() {
-    this->registers.A = this->registers.L;
-    this->registers.PC += 1;
+    this->registers_.A = this->registers_.L;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1487,8 +1487,8 @@ void CPU::op_ld_a_l() {
 // 1 8
 // - - - -
 void CPU::op_ld_a_hlm() {
-    this->registers.A = this->memory.read_byte(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->registers_.A = this->memory_.read_byte(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1497,8 +1497,8 @@ void CPU::op_ld_a_hlm() {
 // 1 4
 // - - - -
 void CPU::op_ld_a_a() {
-    this->registers.A = this->registers.A;
-    this->registers.PC += 1;
+    this->registers_.A = this->registers_.A;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1507,8 +1507,8 @@ void CPU::op_ld_a_a() {
 // 1 4
 // Z 0 H C
 void CPU::op_add_a_b() {
-    this->alu.add_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.add_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1517,8 +1517,8 @@ void CPU::op_add_a_b() {
 // 1 4
 // Z 0 H C
 void CPU::op_add_a_c() {
-    this->alu.add_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.add_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1527,8 +1527,8 @@ void CPU::op_add_a_c() {
 // 1 4
 // Z 0 H C
 void CPU::op_add_a_d() {
-    this->alu.add_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.add_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1537,8 +1537,8 @@ void CPU::op_add_a_d() {
 // 1 4
 // Z 0 H C
 void CPU::op_add_a_e() {
-    this->alu.add_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.add_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1547,8 +1547,8 @@ void CPU::op_add_a_e() {
 // 1 4
 // Z 0 H C
 void CPU::op_add_a_h() {
-    this->alu.add_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.add_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1557,8 +1557,8 @@ void CPU::op_add_a_h() {
 // 1 4
 // Z 0 H C
 void CPU::op_add_a_l() {
-    this->alu.add_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.add_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1567,9 +1567,9 @@ void CPU::op_add_a_l() {
 // 1 8
 // Z 0 H C
 void CPU::op_add_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.add_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.add_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1578,8 +1578,8 @@ void CPU::op_add_a_hlm() {
 // 1 4
 // Z 0 H C
 void CPU::op_add_a_a() {
-    this->alu.add_u8(this->registers.A);
-    this->registers.PC += 1;
+    this->alu_.add_u8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1588,8 +1588,8 @@ void CPU::op_add_a_a() {
 // 1 4
 // Z 0 H C
 void CPU::op_adc_a_b() {
-    this->alu.adc_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.adc_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1598,8 +1598,8 @@ void CPU::op_adc_a_b() {
 // 1 4
 // Z 0 H C
 void CPU::op_adc_a_c() {
-    this->alu.adc_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.adc_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1608,8 +1608,8 @@ void CPU::op_adc_a_c() {
 // 1 4
 // Z 0 H C
 void CPU::op_adc_a_d() {
-    this->alu.adc_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.adc_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1618,8 +1618,8 @@ void CPU::op_adc_a_d() {
 // 1 4
 // Z 0 H C
 void CPU::op_adc_a_e() {
-    this->alu.adc_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.adc_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1628,8 +1628,8 @@ void CPU::op_adc_a_e() {
 // 1 4
 // Z 0 H C
 void CPU::op_adc_a_h() {
-    this->alu.adc_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.adc_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1638,8 +1638,8 @@ void CPU::op_adc_a_h() {
 // 1 4
 // Z 0 H C
 void CPU::op_adc_a_l() {
-    this->alu.adc_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.adc_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1648,9 +1648,9 @@ void CPU::op_adc_a_l() {
 // 1 8
 // Z 0 H C
 void CPU::op_adc_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.adc_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.adc_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1659,8 +1659,8 @@ void CPU::op_adc_a_hlm() {
 // 1 4
 // Z 0 H C
 void CPU::op_adc_a_a() {
-    this->alu.adc_u8(this->registers.A);
-    this->registers.PC += 1;
+    this->alu_.adc_u8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1669,8 +1669,8 @@ void CPU::op_adc_a_a() {
 // 1 4
 // Z 1 H C
 void CPU::op_sub_a_b() {
-    this->alu.sub_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.sub_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1679,8 +1679,8 @@ void CPU::op_sub_a_b() {
 // 1 4
 // Z 1 H C
 void CPU::op_sub_a_c() {
-    this->alu.sub_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.sub_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1689,8 +1689,8 @@ void CPU::op_sub_a_c() {
 // 1 4
 // Z 1 H C
 void CPU::op_sub_a_d() {
-    this->alu.sub_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.sub_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1699,8 +1699,8 @@ void CPU::op_sub_a_d() {
 // 1 4
 // Z 1 H C
 void CPU::op_sub_a_e() {
-    this->alu.sub_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.sub_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1709,8 +1709,8 @@ void CPU::op_sub_a_e() {
 // 1 4
 // Z 1 H C
 void CPU::op_sub_a_h() {
-    this->alu.sub_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.sub_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1719,8 +1719,8 @@ void CPU::op_sub_a_h() {
 // 1 4
 // Z 1 H C
 void CPU::op_sub_a_l() {
-    this->alu.sub_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.sub_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1729,9 +1729,9 @@ void CPU::op_sub_a_l() {
 // 1 8
 // Z 1 H C
 void CPU::op_sub_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.sub_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.sub_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1740,8 +1740,8 @@ void CPU::op_sub_a_hlm() {
 // 1 4
 // Z 1 H C
 void CPU::op_sub_a_a() {
-    this->alu.sub_u8(this->registers.A);
-    this->registers.PC += 1;
+    this->alu_.sub_u8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1750,8 +1750,8 @@ void CPU::op_sub_a_a() {
 // 1 4
 // Z 1 H C
 void CPU::op_sbc_a_b() {
-    this->alu.sbc_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.sbc_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1760,8 +1760,8 @@ void CPU::op_sbc_a_b() {
 // 1 4
 // Z 1 H C
 void CPU::op_sbc_a_c() {
-    this->alu.sbc_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.sbc_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1770,8 +1770,8 @@ void CPU::op_sbc_a_c() {
 // 1 4
 // Z 1 H C
 void CPU::op_sbc_a_d() {
-    this->alu.sbc_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.sbc_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1780,8 +1780,8 @@ void CPU::op_sbc_a_d() {
 // 1 4
 // Z 1 H C
 void CPU::op_sbc_a_e() {
-    this->alu.sbc_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.sbc_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1790,8 +1790,8 @@ void CPU::op_sbc_a_e() {
 // 1 4
 // Z 1 H C
 void CPU::op_sbc_a_h() {
-    this->alu.sbc_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.sbc_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1800,8 +1800,8 @@ void CPU::op_sbc_a_h() {
 // 1 4
 // Z 1 H C
 void CPU::op_sbc_a_l() {
-    this->alu.sbc_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.sbc_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1810,9 +1810,9 @@ void CPU::op_sbc_a_l() {
 // 1 8
 // Z 1 H C
 void CPU::op_sbc_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.sbc_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.sbc_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1821,8 +1821,8 @@ void CPU::op_sbc_a_hlm() {
 // 1 4
 // Z 1 H C
 void CPU::op_sbc_a_a() {
-    this->alu.sbc_u8(this->registers.A);
-    this->registers.PC += 1;
+    this->alu_.sbc_u8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1831,8 +1831,8 @@ void CPU::op_sbc_a_a() {
 // 1 4
 // Z 0 1 0
 void CPU::op_and_a_b() {
-    this->alu.and_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.and_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1841,8 +1841,8 @@ void CPU::op_and_a_b() {
 // 1 4
 // Z 0 1 0
 void CPU::op_and_a_c() {
-    this->alu.and_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.and_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1851,8 +1851,8 @@ void CPU::op_and_a_c() {
 // 1 4
 // Z 0 1 0
 void CPU::op_and_a_d() {
-    this->alu.and_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.and_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1861,8 +1861,8 @@ void CPU::op_and_a_d() {
 // 1 4
 // Z 0 1 0
 void CPU::op_and_a_e() {
-    this->alu.and_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.and_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1871,8 +1871,8 @@ void CPU::op_and_a_e() {
 // 1 4
 // Z 0 1 0
 void CPU::op_and_a_h() {
-    this->alu.and_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.and_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1881,8 +1881,8 @@ void CPU::op_and_a_h() {
 // 1 4
 // Z 0 1 0
 void CPU::op_and_a_l() {
-    this->alu.and_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.and_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1891,9 +1891,9 @@ void CPU::op_and_a_l() {
 // 1 8
 // Z 0 1 0
 void CPU::op_and_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.and_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.and_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1902,8 +1902,8 @@ void CPU::op_and_a_hlm() {
 // 1 4
 // Z 0 1 0
 void CPU::op_and_a_a() {
-    this->alu.and_u8(this->registers.A);
-    this->registers.PC += 1;
+    this->alu_.and_u8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1912,8 +1912,8 @@ void CPU::op_and_a_a() {
 // 1 4
 // Z 0 0 0
 void CPU::op_xor_a_b() {
-    this->alu.xor_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.xor_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1922,8 +1922,8 @@ void CPU::op_xor_a_b() {
 // 1 4
 // Z 0 0 0
 void CPU::op_xor_a_c() {
-    this->alu.xor_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.xor_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1932,8 +1932,8 @@ void CPU::op_xor_a_c() {
 // 1 4
 // Z 0 0 0
 void CPU::op_xor_a_d() {
-    this->alu.xor_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.xor_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1942,8 +1942,8 @@ void CPU::op_xor_a_d() {
 // 1 4
 // Z 0 0 0
 void CPU::op_xor_a_e() {
-    this->alu.xor_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.xor_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1952,8 +1952,8 @@ void CPU::op_xor_a_e() {
 // 1 4
 // Z 0 0 0
 void CPU::op_xor_a_h() {
-    this->alu.xor_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.xor_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1962,8 +1962,8 @@ void CPU::op_xor_a_h() {
 // 1 4
 // Z 0 0 0
 void CPU::op_xor_a_l() {
-    this->alu.xor_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.xor_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1972,9 +1972,9 @@ void CPU::op_xor_a_l() {
 // 1 8
 // Z 0 0 0
 void CPU::op_xor_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.xor_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.xor_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -1983,8 +1983,8 @@ void CPU::op_xor_a_hlm() {
 // 1 4
 // Z 0 0 0
 void CPU::op_xor_a_a() {
-    this->alu.xor_u8(this->registers.A);
-    this->registers.PC += 1;
+    this->alu_.xor_u8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -1993,8 +1993,8 @@ void CPU::op_xor_a_a() {
 // 1 4
 // Z 0 0 0
 void CPU::op_or_a_b() {
-    this->alu.or_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.or_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2003,8 +2003,8 @@ void CPU::op_or_a_b() {
 // 1 4
 // Z 0 0 0
 void CPU::op_or_a_c() {
-    this->alu.or_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.or_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2013,8 +2013,8 @@ void CPU::op_or_a_c() {
 // 1 4
 // Z 0 0 0
 void CPU::op_or_a_d() {
-    this->alu.or_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.or_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2023,8 +2023,8 @@ void CPU::op_or_a_d() {
 // 1 4
 // Z 0 0 0
 void CPU::op_or_a_e() {
-    this->alu.or_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.or_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2033,8 +2033,8 @@ void CPU::op_or_a_e() {
 // 1 4
 // Z 0 0 0
 void CPU::op_or_a_h() {
-    this->alu.or_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.or_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2043,8 +2043,8 @@ void CPU::op_or_a_h() {
 // 1 4
 // Z 0 0 0
 void CPU::op_or_a_l() {
-    this->alu.or_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.or_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2053,9 +2053,9 @@ void CPU::op_or_a_l() {
 // 1 8
 // Z 0 0 0
 void CPU::op_or_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.or_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.or_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2064,8 +2064,8 @@ void CPU::op_or_a_hlm() {
 // 1 4
 // Z 0 0 0
 void CPU::op_or_a_a() {
-    this->alu.or_u8(this->registers.A);
-    this->registers.PC += 1;
+    this->alu_.or_u8(this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2074,8 +2074,8 @@ void CPU::op_or_a_a() {
 // 1 4
 // Z 1 H C
 void CPU::op_cp_a_b() {
-    this->alu.cp_u8(this->registers.B);
-    this->registers.PC += 1;
+    this->alu_.cp_u8(this->registers_.B);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2084,8 +2084,8 @@ void CPU::op_cp_a_b() {
 // 1 4
 // Z 1 H C
 void CPU::op_cp_a_c() {
-    this->alu.cp_u8(this->registers.C);
-    this->registers.PC += 1;
+    this->alu_.cp_u8(this->registers_.C);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2094,8 +2094,8 @@ void CPU::op_cp_a_c() {
 // 1 4
 // Z 1 H C
 void CPU::op_cp_a_d() {
-    this->alu.cp_u8(this->registers.D);
-    this->registers.PC += 1;
+    this->alu_.cp_u8(this->registers_.D);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2104,8 +2104,8 @@ void CPU::op_cp_a_d() {
 // 1 4
 // Z 1 H C
 void CPU::op_cp_a_e() {
-    this->alu.cp_u8(this->registers.E);
-    this->registers.PC += 1;
+    this->alu_.cp_u8(this->registers_.E);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2114,8 +2114,8 @@ void CPU::op_cp_a_e() {
 // 1 4
 // Z 1 H C
 void CPU::op_cp_a_h() {
-    this->alu.cp_u8(this->registers.H);
-    this->registers.PC += 1;
+    this->alu_.cp_u8(this->registers_.H);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2124,8 +2124,8 @@ void CPU::op_cp_a_h() {
 // 1 4
 // Z 1 H C
 void CPU::op_cp_a_l() {
-    this->alu.cp_u8(this->registers.L);
-    this->registers.PC += 1;
+    this->alu_.cp_u8(this->registers_.L);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2134,9 +2134,9 @@ void CPU::op_cp_a_l() {
 // 1 8
 // Z 1 H C
 void CPU::op_cp_a_hlm() {
-    uint8_t value = this->memory.read_byte(this->registers.get_hl());
-    this->alu.cp_u8(value);
-    this->registers.PC += 1;
+    uint8_t value = this->memory_.read_byte(this->registers_.get_hl());
+    this->alu_.cp_u8(value);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2145,12 +2145,12 @@ void CPU::op_cp_a_hlm() {
 // 1 4
 // 1 1 0 0
 void CPU::op_cp_a_a() {
-    this->alu.cp_u8(this->registers.A);
-    this->registers.set_flag_z(true);
-    this->registers.set_flag_n(true);
-    this->registers.set_flag_h(false);
-    this->registers.set_flag_c(false);
-    this->registers.PC += 1;
+    this->alu_.cp_u8(this->registers_.A);
+    this->registers_.set_flag_z(true);
+    this->registers_.set_flag_n(true);
+    this->registers_.set_flag_h(false);
+    this->registers_.set_flag_c(false);
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2159,13 +2159,13 @@ void CPU::op_cp_a_a() {
 // 1 20/8
 // - - - -
 void CPU::op_ret_nz() {
-    if (!this->registers.get_flag_z()) {
-        uint16_t address = this->stack.pop_word();
-        this->registers.PC = address;
+    if (!this->registers_.get_flag_z()) {
+        uint16_t address = this->stack_.pop_word();
+        this->registers_.PC = address;
         this->tstates += 20;
         return;
     }
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2174,9 +2174,9 @@ void CPU::op_ret_nz() {
 // 1 12
 // - - - -
 void CPU::op_pop_bc() {
-    uint16_t word = this->stack.pop_word();
-    this->registers.set_bc(word);
-    this->registers.PC += 1;
+    uint16_t word = this->stack_.pop_word();
+    this->registers_.set_bc(word);
+    this->registers_.PC += 1;
     this->tstates += 12;
 }
 
@@ -2185,13 +2185,13 @@ void CPU::op_pop_bc() {
 // 3 16/12
 // - - - -
 void CPU::op_jp_nz_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    if (!this->registers.get_flag_z()) {
-        this->registers.PC = address;
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    if (!this->registers_.get_flag_z()) {
+        this->registers_.PC = address;
         this->tstates += 16;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2200,8 +2200,8 @@ void CPU::op_jp_nz_a16() {
 // 3 16
 // - - - -
 void CPU::op_jp_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = address;
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = address;
     this->tstates += 16;
 }
 
@@ -2210,17 +2210,17 @@ void CPU::op_jp_a16() {
 // 3 24/12
 // - - - -
 void CPU::op_call_nz_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
 
-    if (!this->registers.get_flag_z()) {
-        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
-        this->stack.push_word(return_address);
+    if (!this->registers_.get_flag_z()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers_.PC + 3);
+        this->stack_.push_word(return_address);
 
-        this->registers.PC = address;
+        this->registers_.PC = address;
         this->tstates += 24;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2229,8 +2229,8 @@ void CPU::op_call_nz_a16() {
 // 1 16
 // - - - -
 void CPU::op_push_bc() {
-    this->stack.push_word(this->registers.get_bc());
-    this->registers.PC += 1;
+    this->stack_.push_word(this->registers_.get_bc());
+    this->registers_.PC += 1;
     this->tstates += 16;
 }
 
@@ -2239,9 +2239,9 @@ void CPU::op_push_bc() {
 // 2 8
 // Z 0 H C
 void CPU::op_add_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.add_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.add_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2250,8 +2250,8 @@ void CPU::op_add_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_00() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0000;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0000;
     this->tstates += 16;
 }
 
@@ -2260,13 +2260,13 @@ void CPU::op_rst_00() {
 // 1 20/8
 // - - - -
 void CPU::op_ret_z() {
-    if (this->registers.get_flag_z()) {
-        uint16_t address = this->stack.pop_word();
-        this->registers.PC = address;
+    if (this->registers_.get_flag_z()) {
+        uint16_t address = this->stack_.pop_word();
+        this->registers_.PC = address;
         this->tstates += 20;
         return;
     }
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2275,8 +2275,8 @@ void CPU::op_ret_z() {
 // 1 16
 // - - - -
 void CPU::op_ret() {
-    uint16_t address = this->stack.pop_word();
-    this->registers.PC = address;
+    uint16_t address = this->stack_.pop_word();
+    this->registers_.PC = address;
     this->tstates += 16;
 }
 
@@ -2285,13 +2285,13 @@ void CPU::op_ret() {
 // 3 16/12
 // - - - -
 void CPU::op_jp_z_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    if (this->registers.get_flag_z()) {
-        this->registers.PC = address;
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    if (this->registers_.get_flag_z()) {
+        this->registers_.PC = address;
         this->tstates += 16;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2300,7 +2300,7 @@ void CPU::op_jp_z_a16() {
 // 1 4
 // - - - -
 void CPU::op_prefix() {
-    uint8_t cb = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
+    uint8_t cb = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
     this->exec_cb(cb); // PC + Cycles handled in exec_cb
 }
 
@@ -2309,17 +2309,17 @@ void CPU::op_prefix() {
 // 3 24/12
 // - - - -
 void CPU::op_call_z_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
 
-    if (this->registers.get_flag_z()) {
-        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
-        this->stack.push_word(return_address);
+    if (this->registers_.get_flag_z()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers_.PC + 3);
+        this->stack_.push_word(return_address);
 
-        this->registers.PC = address;
+        this->registers_.PC = address;
         this->tstates += 24;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2328,12 +2328,12 @@ void CPU::op_call_z_a16() {
 // 3 24
 // - - - -
 void CPU::op_call_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
 
-    uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
-    this->stack.push_word(return_address);
+    uint16_t return_address = static_cast<uint16_t>(this->registers_.PC + 3);
+    this->stack_.push_word(return_address);
 
-    this->registers.PC = address;
+    this->registers_.PC = address;
     this->tstates += 24;
 }
 
@@ -2342,9 +2342,9 @@ void CPU::op_call_a16() {
 // 2 8
 // Z 0 H C
 void CPU::op_adc_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.adc_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.adc_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2353,8 +2353,8 @@ void CPU::op_adc_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_08() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0008;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0008;
     this->tstates += 16;
 }
 
@@ -2363,13 +2363,13 @@ void CPU::op_rst_08() {
 // 1 20/8
 // - - - -
 void CPU::op_ret_nc() {
-    if (!this->registers.get_flag_c()) {
-        uint16_t address = this->stack.pop_word();
-        this->registers.PC = address;
+    if (!this->registers_.get_flag_c()) {
+        uint16_t address = this->stack_.pop_word();
+        this->registers_.PC = address;
         this->tstates += 20;
         return;
     }
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2378,9 +2378,9 @@ void CPU::op_ret_nc() {
 // 1 12
 // - - - -
 void CPU::op_pop_de() {
-    uint16_t word = this->stack.pop_word();
-    this->registers.set_de(word);
-    this->registers.PC += 1;
+    uint16_t word = this->stack_.pop_word();
+    this->registers_.set_de(word);
+    this->registers_.PC += 1;
     this->tstates += 12;
 }
 
@@ -2389,13 +2389,13 @@ void CPU::op_pop_de() {
 // 3 16/12
 // - - - -
 void CPU::op_jp_nc_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    if (!this->registers.get_flag_c()) {
-        this->registers.PC = address;
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    if (!this->registers_.get_flag_c()) {
+        this->registers_.PC = address;
         this->tstates += 16;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2412,17 +2412,17 @@ void CPU::op_jp_nc_a16() {
 // 3 24/12
 // - - - -
 void CPU::op_call_nc_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
 
-    if (!this->registers.get_flag_c()) {
-        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
-        this->stack.push_word(return_address);
+    if (!this->registers_.get_flag_c()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers_.PC + 3);
+        this->stack_.push_word(return_address);
 
-        this->registers.PC = address;
+        this->registers_.PC = address;
         this->tstates += 24;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2431,8 +2431,8 @@ void CPU::op_call_nc_a16() {
 // 1 16
 // - - - -
 void CPU::op_push_de() {
-    this->stack.push_word(this->registers.get_de());
-    this->registers.PC += 1;
+    this->stack_.push_word(this->registers_.get_de());
+    this->registers_.PC += 1;
     this->tstates += 16;
 }
 
@@ -2441,9 +2441,9 @@ void CPU::op_push_de() {
 // 2 8
 // Z 1 H C
 void CPU::op_sub_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.sub_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.sub_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2452,8 +2452,8 @@ void CPU::op_sub_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_10() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0010;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0010;
     this->tstates += 16;
 }
 
@@ -2462,13 +2462,13 @@ void CPU::op_rst_10() {
 // 1 20/8
 // - - - -
 void CPU::op_ret_c() {
-    if (this->registers.get_flag_c()) {
-        uint16_t address = this->stack.pop_word();
-        this->registers.PC = address;
+    if (this->registers_.get_flag_c()) {
+        uint16_t address = this->stack_.pop_word();
+        this->registers_.PC = address;
         this->tstates += 20;
         return;
     }
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2477,9 +2477,9 @@ void CPU::op_ret_c() {
 // 1 16
 // - - - -
 void CPU::op_reti() {
-    uint16_t address = this->stack.pop_word();
-    this->registers.PC = address;
-    this->registers.IME = true;
+    uint16_t address = this->stack_.pop_word();
+    this->registers_.PC = address;
+    this->registers_.IME = true;
     this->tstates += 16;
 }
 
@@ -2488,13 +2488,13 @@ void CPU::op_reti() {
 // 3 16/12
 // - - - -
 void CPU::op_jp_c_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    if (this->registers.get_flag_c()) {
-        this->registers.PC = address;
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    if (this->registers_.get_flag_c()) {
+        this->registers_.PC = address;
         this->tstates += 16;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2511,17 +2511,17 @@ void CPU::op_jp_c_a16() {
 // 3 24/12
 // - - - -
 void CPU::op_call_c_a16() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
 
-    if (this->registers.get_flag_c()) {
-        uint16_t return_address = static_cast<uint16_t>(this->registers.PC + 3);
-        this->stack.push_word(return_address);
+    if (this->registers_.get_flag_c()) {
+        uint16_t return_address = static_cast<uint16_t>(this->registers_.PC + 3);
+        this->stack_.push_word(return_address);
 
-        this->registers.PC = address;
+        this->registers_.PC = address;
         this->tstates += 24;
         return;
     }
-    this->registers.PC += 3;
+    this->registers_.PC += 3;
     this->tstates += 12;
 }
 
@@ -2538,9 +2538,9 @@ void CPU::op_call_c_a16() {
 // 2 8
 // Z 1 H C
 void CPU::op_sbc_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.sbc_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.sbc_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2549,8 +2549,8 @@ void CPU::op_sbc_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_18() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0018;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0018;
     this->tstates += 16;
 }
 
@@ -2560,9 +2560,9 @@ void CPU::op_rst_18() {
 // - - - -
 // Notes: a8 means 8-bit unsigned data, which is added to $FF00 in certain instructions to create a 16-bit address in HRAM (High RAM)
 void CPU::op_ldh_a8m_a() {
-    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-    this->memory.write_byte(address, this->registers.A);
-    this->registers.PC += 2;
+    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+    this->memory_.write_byte(address, this->registers_.A);
+    this->registers_.PC += 2;
     this->tstates += 12;
 }
 
@@ -2571,9 +2571,9 @@ void CPU::op_ldh_a8m_a() {
 // 1 12
 // - - - -
 void CPU::op_pop_hl() {
-    uint16_t word = this->stack.pop_word();
-    this->registers.set_hl(word);
-    this->registers.PC += 1;
+    uint16_t word = this->stack_.pop_word();
+    this->registers_.set_hl(word);
+    this->registers_.PC += 1;
     this->tstates += 12;
 }
 
@@ -2583,9 +2583,9 @@ void CPU::op_pop_hl() {
 // - - - -
 // Notes: LDH [C], A has the alternative mnemonic LD [$FF00+C], A
 void CPU::op_ldh_cm_a() {
-    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers.C);
-    this->memory.write_byte(address, this->registers.A);
-    this->registers.PC += 1;
+    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers_.C);
+    this->memory_.write_byte(address, this->registers_.A);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2610,8 +2610,8 @@ void CPU::op_ldh_cm_a() {
 // 1 16
 // - - - -
 void CPU::op_push_hl() {
-    this->stack.push_word(this->registers.get_hl());
-    this->registers.PC += 1;
+    this->stack_.push_word(this->registers_.get_hl());
+    this->registers_.PC += 1;
     this->tstates += 16;
 }
 
@@ -2620,9 +2620,9 @@ void CPU::op_push_hl() {
 // 2 8
 // Z 0 1 0
 void CPU::op_and_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.and_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.and_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2631,8 +2631,8 @@ void CPU::op_and_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_20() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0020;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0020;
     this->tstates += 16;
 }
 
@@ -2641,20 +2641,20 @@ void CPU::op_rst_20() {
 // 2 16
 // 0 0 H C
 void CPU::op_add_sp_e8() {
-    int8_t value = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-    uint16_t sp = this->registers.SP;
+    int8_t value = static_cast<int8_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+    uint16_t sp = this->registers_.SP;
     uint16_t result = static_cast<uint16_t>(static_cast<int32_t>(sp) + static_cast<int32_t>(value));
-    this->registers.SP = result;
+    this->registers_.SP = result;
 
     uint8_t value_u = static_cast<uint8_t>(value);
 
     // Flags
-    this->registers.set_flag_z(false);
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h(((sp & 0x0F) + (value_u & 0x0F)) > 0x0F);
-    this->registers.set_flag_c((static_cast<uint16_t>(sp & 0xFF) + value_u) > 0xFF);
+    this->registers_.set_flag_z(false);
+    this->registers_.set_flag_n(false);
+    this->registers_.set_flag_h(((sp & 0x0F) + (value_u & 0x0F)) > 0x0F);
+    this->registers_.set_flag_c((static_cast<uint16_t>(sp & 0xFF) + value_u) > 0xFF);
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 16;
 }
 
@@ -2663,7 +2663,7 @@ void CPU::op_add_sp_e8() {
 // 1 4
 // - - - -
 void CPU::op_jp_hl() {
-    this->registers.PC = this->registers.get_hl();
+    this->registers_.PC = this->registers_.get_hl();
     this->tstates += 4;
 }
 
@@ -2672,8 +2672,8 @@ void CPU::op_jp_hl() {
 // 3 16
 // - - - -
 void CPU::op_ld_a16m_a() {
-    this->memory.write_byte(this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1)), this->registers.A);
-    this->registers.PC += 3;
+    this->memory_.write_byte(this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1)), this->registers_.A);
+    this->registers_.PC += 3;
     this->tstates += 16;
 }
 
@@ -2706,9 +2706,9 @@ void CPU::op_ld_a16m_a() {
 // 2 8
 // Z 0 0 0
 void CPU::op_xor_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.xor_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.xor_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2717,8 +2717,8 @@ void CPU::op_xor_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_28() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0028;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0028;
     this->tstates += 16;
 }
 
@@ -2728,9 +2728,9 @@ void CPU::op_rst_28() {
 // - - - -
 // Notes: a8 means 8-bit unsigned data, which is added to $FF00 in certain instructions to create a 16-bit address in HRAM (High RAM)
 void CPU::op_ldh_a_a8m() {
-    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-    this->registers.A = this->memory.read_byte(address);
-    this->registers.PC += 2;
+    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+    this->registers_.A = this->memory_.read_byte(address);
+    this->registers_.PC += 2;
     this->tstates += 12;
 }
 
@@ -2739,9 +2739,9 @@ void CPU::op_ldh_a_a8m() {
 // 1 12
 // Z N H C
 void CPU::op_pop_af() {
-    uint16_t word = this->stack.pop_word();
-    this->registers.set_af(word);
-    this->registers.PC += 1;
+    uint16_t word = this->stack_.pop_word();
+    this->registers_.set_af(word);
+    this->registers_.PC += 1;
     this->tstates += 12;
 }
 
@@ -2751,9 +2751,9 @@ void CPU::op_pop_af() {
 // - - - -
 // LDH A, [C] has the alternative mnemonic LD A, [$FF00+C]
 void CPU::op_ldh_a_cm() {
-    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers.C);
-    this->registers.A = this->memory.read_byte(address);
-    this->registers.PC += 1;
+    uint16_t address = 0xFF00 + static_cast<uint16_t>(this->registers_.C);
+    this->registers_.A = this->memory_.read_byte(address);
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2762,10 +2762,10 @@ void CPU::op_ldh_a_cm() {
 // 1 4
 // - - - -
 void CPU::op_di() {
-    this->registers.IME = false;
+    this->registers_.IME = false;
     this->ime_enable_delay = 0;
     this->halt_bug_active = false;
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2782,8 +2782,8 @@ void CPU::op_di() {
 // 1 16
 // - - - -
 void CPU::op_push_af() {
-    this->stack.push_word(this->registers.get_af());
-    this->registers.PC += 1;
+    this->stack_.push_word(this->registers_.get_af());
+    this->registers_.PC += 1;
     this->tstates += 16;
 }
 
@@ -2792,9 +2792,9 @@ void CPU::op_push_af() {
 // 2 8
 // Z 0 0 0
 void CPU::op_or_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.or_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.or_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2803,8 +2803,8 @@ void CPU::op_or_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_30() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0030;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0030;
     this->tstates += 16;
 }
 
@@ -2813,18 +2813,18 @@ void CPU::op_rst_30() {
 // 3 12
 // 0 0 H C
 void CPU::op_ld_hl_sp_e8() {
-    int8_t offset = static_cast<int8_t>(this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1)));
-    uint16_t sp = this->registers.SP;
+    int8_t offset = static_cast<int8_t>(this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1)));
+    uint16_t sp = this->registers_.SP;
     uint16_t result = static_cast<uint16_t>(static_cast<int32_t>(sp) + static_cast<int32_t>(offset));
-    this->registers.set_hl(result);
+    this->registers_.set_hl(result);
 
     // Flags
-    this->registers.set_flag_z(false);
-    this->registers.set_flag_n(false);
-    this->registers.set_flag_h(((sp & 0x0F) + (static_cast<uint8_t>(offset) & 0x0F)) > 0x0F);
-    this->registers.set_flag_c((static_cast<uint16_t>(sp & 0xFF) + static_cast<uint8_t>(offset)) > 0xFF);
+    this->registers_.set_flag_z(false);
+    this->registers_.set_flag_n(false);
+    this->registers_.set_flag_h(((sp & 0x0F) + (static_cast<uint8_t>(offset) & 0x0F)) > 0x0F);
+    this->registers_.set_flag_c((static_cast<uint16_t>(sp & 0xFF) + static_cast<uint8_t>(offset)) > 0xFF);
 
-    this->registers.PC += 2;
+    this->registers_.PC += 2;
     this->tstates += 12;
 }
 
@@ -2833,8 +2833,8 @@ void CPU::op_ld_hl_sp_e8() {
 // 1 8
 // - - - -
 void CPU::op_ld_sp_hl() {
-    this->registers.SP = this->registers.get_hl();
-    this->registers.PC += 1;
+    this->registers_.SP = this->registers_.get_hl();
+    this->registers_.PC += 1;
     this->tstates += 8;
 }
 
@@ -2843,10 +2843,10 @@ void CPU::op_ld_sp_hl() {
 // 3 16
 // - - - -
 void CPU::op_ld_a_a16m() {
-    uint16_t address = this->memory.read_word(static_cast<uint16_t>(this->registers.PC + 1));
-    uint8_t value = this->memory.read_byte(address);
-    this->registers.A = value;
-    this->registers.PC += 3;
+    uint16_t address = this->memory_.read_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    uint8_t value = this->memory_.read_byte(address);
+    this->registers_.A = value;
+    this->registers_.PC += 3;
     this->tstates += 16;
 }
 
@@ -2856,7 +2856,7 @@ void CPU::op_ld_a_a16m() {
 // - - - -
 void CPU::op_ei() {
     this->ime_enable_delay = 2;
-    this->registers.PC += 1;
+    this->registers_.PC += 1;
     this->tstates += 4;
 }
 
@@ -2881,9 +2881,9 @@ void CPU::op_ei() {
 // 2 8
 // Z 1 H C
 void CPU::op_cp_a_n8() {
-    uint8_t value = this->memory.read_byte(static_cast<uint16_t>(this->registers.PC + 1));
-    this->alu.cp_u8(value);
-    this->registers.PC += 2;
+    uint8_t value = this->memory_.read_byte(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->alu_.cp_u8(value);
+    this->registers_.PC += 2;
     this->tstates += 8;
 }
 
@@ -2892,8 +2892,8 @@ void CPU::op_cp_a_n8() {
 // 1 16
 // - - - -
 void CPU::op_rst_38() {
-    this->stack.push_word(static_cast<uint16_t>(this->registers.PC + 1));
-    this->registers.PC = 0x0038;
+    this->stack_.push_word(static_cast<uint16_t>(this->registers_.PC + 1));
+    this->registers_.PC = 0x0038;
     this->tstates += 16;
 }
 

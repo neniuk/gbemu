@@ -1,9 +1,8 @@
-#ifndef REGISTERS_H
-#define REGISTERS_H
+#pragma once
 
 #include "config.h"
 #include <cstddef>
-#include <stdint.h>
+#include <cstdint>
 
 static constexpr uint8_t FLAG_Z_MASK = 0x80;
 static constexpr uint8_t FLAG_N_MASK = 0x40;
@@ -12,7 +11,7 @@ static constexpr uint8_t FLAG_C_MASK = 0x10;
 
 class Registers {
   public:
-    Registers(uint8_t initial_value = 0);
+    Registers();
 
     uint8_t A;
     uint8_t B;
@@ -52,5 +51,3 @@ class Registers {
     void set_flag_c(bool value);
     bool get_flag_c();
 };
-
-#endif

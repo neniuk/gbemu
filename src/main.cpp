@@ -1,10 +1,10 @@
 #include "config.h"
 #include "gb.h"
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iterator>
-#include <string.h>
 #include <vector>
 
 std::vector<uint8_t> read_file(const std::string &filename) {
@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
         throw std::runtime_error("No ROM to load");
     }
 
-    if constexpr (kDebugMode) {
+    if constexpr (config::debug_mode) {
         std::cout << "[DEBUG] main > Debug mode enabled\n";
     }
 

@@ -1,23 +1,23 @@
 #include "screen.h"
 
-#include <assert.h>
+#include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
-#include <stdint.h>
 #include <vector>
 
-Screen::Screen() { memset(this->screen, 0, sizeof(this->screen)); }
+Screen::Screen() { memset(this->screen_, 0, sizeof(this->screen_)); }
 void Screen::set(size_t x, size_t y, uint8_t color) {
-    assert(color >= 0 && color <= 3);
+    assert(color < 4U);
     // clang-format off
     assert(
-        x >= 0 && x < GB_SCREEN_WIDTH && 
-        y >= 0 && y < GB_SCREEN_HEIGHT
+        x < config::screen_width && 
+        y < config::screen_height
     );
     // clang-format on
-    this->screen[x][y] = color;
+    this->screen_[x][y] = color;
 }
-void Screen::clear() { memset(this->screen, 0, sizeof(this->screen)); }
+void Screen::clear() { memset(this->screen_, 0, sizeof(this->screen_)); }
 
 void Screen::draw_logo(const std::vector<uint8_t> &logo) {
     if (logo.size() < 48) return;
@@ -25,8 +25,8 @@ void Screen::draw_logo(const std::vector<uint8_t> &logo) {
     const size_t logo_w = 48;
     const size_t logo_h = 8;
 
-    const size_t off_x = (GB_SCREEN_WIDTH - logo_w) / 2;
-    const size_t off_y = (GB_SCREEN_HEIGHT - logo_h) / 2;
+    const size_t off_x = (config::screen_width - logo_w) / 2;
+    const size_t off_y = (config::screen_height - logo_h) / 2;
 
     for (size_t half = 0; half < 2; ++half) {
         for (size_t i = 0; i < 24; ++i) {
@@ -51,22 +51,22 @@ void Screen::draw_logo(const std::vector<uint8_t> &logo) {
     }
 }
 
-void Screen::set_renderer(SDL_Renderer *renderer) { this->renderer = renderer; }
-void Screen::set_texture(SDL_Texture *texture) { this->texture = texture; }
+void Screen::set_renderer(SDL_Renderer *renderer) { this->renderer_ = renderer; }
+void Screen::set_texture(SDL_Texture *texture) { this->texture_ = texture; }
 void Screen::present() {
-    assert(this->renderer != nullptr);
-    assert(this->texture != nullptr);
+    assert(this->renderer_ != nullptr);
+    assert(this->texture_ != nullptr);
 
-    uint32_t pixels[GB_SCREEN_WIDTH * GB_SCREEN_HEIGHT];
-    for (size_t y = 0; y < GB_SCREEN_HEIGHT; ++y) {
-        for (size_t x = 0; x < GB_SCREEN_WIDTH; ++x) {
-            pixels[y * GB_SCREEN_WIDTH + x] = this->palette[this->screen[x][y]];
+    uint32_t pixels[config::screen_width * config::screen_height];
+    for (size_t y = 0; y < config::screen_height; ++y) {
+        for (size_t x = 0; x < config::screen_width; ++x) {
+            pixels[y * config::screen_width + x] = this->palette_[this->screen_[x][y]];
         }
     }
 
-    SDL_UpdateTexture(this->texture, nullptr, pixels, GB_SCREEN_WIDTH * sizeof(uint32_t));
+    SDL_UpdateTexture(this->texture_, nullptr, pixels, config::screen_width * sizeof(uint32_t));
 
-    SDL_RenderClear(this->renderer);
-    SDL_RenderCopy(this->renderer, this->texture, nullptr, nullptr);
-    SDL_RenderPresent(this->renderer);
+    SDL_RenderClear(this->renderer_);
+    SDL_RenderCopy(this->renderer_, this->texture_, nullptr, nullptr);
+    SDL_RenderPresent(this->renderer_);
 }

@@ -1,11 +1,10 @@
-#ifndef SCREEN_H
-#define SCREEN_H
+#pragma once
 
 #include "config.h"
 
 #include <SDL2/SDL.h>
 #include <cstddef>
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 
 class Screen {
@@ -20,11 +19,9 @@ class Screen {
     void present();
 
   private:
-    uint8_t screen[GB_SCREEN_WIDTH][GB_SCREEN_HEIGHT];
-    SDL_Renderer *renderer = nullptr;
-    SDL_Texture *texture = nullptr;
+    uint8_t screen_[config::screen_width][config::screen_height];
+    SDL_Renderer *renderer_ = nullptr;
+    SDL_Texture *texture_ = nullptr;
 
-    uint32_t palette[4] = {0xFF000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF};
+    uint32_t palette_[4] = {0xFF000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF};
 };
-
-#endif

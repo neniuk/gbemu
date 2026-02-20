@@ -1,11 +1,10 @@
-#ifndef STACK_H
-#define STACK_H
+#pragma once
 
 #include "config.h"
 #include "memory.h"
 
 #include <array>
-#include <stdint.h>
+#include <cstdint>
 
 class Stack {
   public:
@@ -18,8 +17,6 @@ class Stack {
     uint16_t pop_word();
 
   private:
-    uint16_t &SP;
-    Memory &memory;
+    uint16_t &SP_;
+    Memory &memory_;
 };
-
-#endif

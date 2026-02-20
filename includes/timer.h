@@ -1,5 +1,4 @@
-#ifndef TIMER_H
-#define TIMER_H
+#pragma once
 
 #include "memory.h"
 #include "registers.h"
@@ -12,7 +11,7 @@ class Timer {
   public:
     Timer(Registers &registers, Memory &memory, bool &stopped);
 
-    void tick(int dots);
+    void tick(uint32_t dots);
 
     uint8_t get_div();
     void set_div(uint8_t value);
@@ -27,14 +26,12 @@ class Timer {
     void set_tac(uint8_t value);
 
   private:
-    Registers &registers;
-    Memory &memory;
-    bool &stopped;
+    Registers &registers_;
+    Memory &memory_;
+    bool &stopped_;
 
-    uint16_t div_m_cycles_counter = 0;
-    uint16_t tima_m_cycles_counter = 0;
+    uint16_t div_m_cycles_counter_ = 0;
+    uint16_t tima_m_cycles_counter_ = 0;
 
-    uint16_t clock_select_increment[4] = {256, 4, 16, 64};
+    uint16_t clock_select_increment_[4] = {256, 4, 16, 64};
 };
-
-#endif

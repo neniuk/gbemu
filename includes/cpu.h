@@ -1,5 +1,4 @@
-#ifndef CPU_H
-#define CPU_H
+#pragma once
 
 #include "alu.h"
 #include "bmi.h"
@@ -28,13 +27,13 @@ class CPU {
     bool halted = false;
 
   private:
-    Registers &registers;
-    Memory &memory;
-    Stack &stack;
-    IDU &idu;
-    ALU &alu;
-    BMI &bmi;
-    PPU &ppu;
+    Registers &registers_;
+    Memory &memory_;
+    Stack &stack_;
+    IDU &idu_;
+    ALU &alu_;
+    BMI &bmi_;
+    PPU &ppu_;
 
     uint64_t tstates = 0;
     uint8_t ime_enable_delay = 0;
@@ -569,5 +568,3 @@ class CPU {
     void op_cb_set_7_hlm();
     void op_cb_set_7_a();
 };
-
-#endif

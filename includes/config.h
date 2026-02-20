@@ -1,20 +1,21 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
-#define GB_WINDOW_TITLE "GBEMU"
+#include <cstdint>
 
-#define GB_MEMORY_SIZE 0xFFFF
+namespace config {
+inline constexpr uint16_t pc_entrypoint = 0x0100;
+inline constexpr uint32_t memory_size = 0x10000;
+inline constexpr uint16_t final_address = 0xFFFF;
 
-#define GB_SCREEN_WIDTH 160
-#define GB_SCREEN_HEIGHT 144
-#define GB_SCREEN_SCALE 4
+inline constexpr uint16_t screen_width = 160;
+inline constexpr uint16_t screen_height = 144;
+inline constexpr uint16_t screen_scale = 4;
 
-#define GB_PROGRAM_COUNTER_START 0x0100
+inline constexpr char window_title[] = "GBEMU";
 
 #if defined(GBEMU_DEBUG)
-inline constexpr bool kDebugMode = true;
+inline constexpr bool debug_mode = true;
 #else
-inline constexpr bool kDebugMode = false;
+inline constexpr bool debug_mode = false;
 #endif
-
-#endif
+} // namespace config

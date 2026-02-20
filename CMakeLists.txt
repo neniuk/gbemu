@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Export compile commands for language servers
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(GBEMU_ENABLE_WARNINGS "Enable stricter compiler warnings" ON)
+
 # Add external dependencies
 find_package(SDL2 CONFIG REQUIRED)
 
@@ -19,6 +21,14 @@ target_link_libraries(gbemu PRIVATE SDL2::SDL2 SDL2::SDL2main)
 
 # Include directories
 target_include_directories(gbemu PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+
+if(GBEMU_ENABLE_WARNINGS)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(gbemu PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+    elseif(MSVC)
+        target_compile_options(gbemu PRIVATE /W4 /permissive-)
+    endif()
+endif()
 
 # Enable compile-time debug flag in Debug builds
 target_compile_definitions(gbemu PRIVATE $<$<CONFIG:Debug>:GBEMU_DEBUG=1>)

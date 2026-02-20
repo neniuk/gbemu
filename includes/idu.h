@@ -1,5 +1,4 @@
-#ifndef IDU_H
-#define IDU_H
+#pragma once
 
 #include "memory.h"
 #include "registers.h"
@@ -19,8 +18,6 @@ class IDU {
     void decrement_mem8(uint16_t address);
 
   private:
-    Registers &registers;
-    Memory &memory;
+    Registers &registers_;
+    Memory &memory_;
 };
-
-#endif

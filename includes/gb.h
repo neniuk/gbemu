@@ -1,5 +1,4 @@
-#ifndef GB_H
-#define GB_H
+#pragma once
 
 #include "alu.h"
 #include "bmi.h"
@@ -15,8 +14,7 @@
 #include "timer.h"
 
 #include <array>
-#include <stdbool.h>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -69,5 +67,3 @@ class GB {
     static const std::unordered_map<uint8_t, std::string> old_licensees;
     static const std::unordered_map<std::string, std::string> new_licensees;
 };
-
-#endif

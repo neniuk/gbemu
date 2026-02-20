@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-Joypad::Joypad(Memory &memory) : memory(memory) {}
+Joypad::Joypad(Memory &memory) : memory_(memory) {}
 
 void Joypad::handle_event(const SDL_Event &event) {
     if (event.type == SDL_KEYDOWN && !event.key.repeat) {
@@ -56,7 +56,7 @@ void Joypad::set_key(SDL_Scancode sc, bool pressed) {
         break;
     }
 
-    if constexpr (kDebugMode) {
+    if constexpr (config::debug_mode) {
         if (handled) {
             std::cout << "[DEBUG] joypad > [joypad] " << (pressed ? "down " : "up   ") << gb_btn << " (scancode=" << static_cast<int>(sc)
                       << ", name=" << SDL_GetScancodeName(sc) << ")\n";
@@ -100,8 +100,8 @@ void Joypad::tick() {
     // Joypad interrupt on 1->0 transition of selected lines
     const uint8_t falling = static_cast<uint8_t>(prev_low_nibble_ & ~low);
     if (falling != 0) {
-        uint8_t iflags = memory.get_if();
-        memory.set_if(static_cast<uint8_t>(iflags | 0x10)); // IF bit4
+        uint8_t iflags = this->memory_.get_if();
+        this->memory_.set_if(static_cast<uint8_t>(iflags | 0x10)); // IF bit4
     }
 
     prev_low_nibble_ = low;

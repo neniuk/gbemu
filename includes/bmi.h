@@ -1,5 +1,4 @@
-#ifndef BMI_H
-#define BMI_H
+#pragma once
 
 #include "memory.h"
 #include "registers.h"
@@ -48,8 +47,6 @@ class BMI {
     void set_u8(uint8_t bit, uint16_t address);
 
   private:
-    Registers &registers;
-    Memory &memory;
+    Registers &registers_;
+    Memory &memory_;
 };
-
-#endif

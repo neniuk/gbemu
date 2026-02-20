@@ -1,7 +1,5 @@
-#ifndef ALU_H
-#define ALU_H
+#pragma once
 
-#include "memory.h"
 #include "registers.h"
 
 #include <cstddef>
@@ -10,7 +8,7 @@
 
 class ALU {
   public:
-    ALU(Registers &registers, Memory &memory);
+    ALU(Registers &registers);
 
     void add_u8(uint8_t val);
     void adc_u8(uint8_t val);
@@ -27,8 +25,5 @@ class ALU {
     void cp_u8(uint8_t val);
 
   private:
-    Registers &registers;
-    Memory &memory;
+    Registers &registers_;
 };
-
-#endif

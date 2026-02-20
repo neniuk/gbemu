@@ -1,5 +1,4 @@
-#ifndef JOYPAD_H
-#define JOYPAD_H
+#pragma once
 
 #include "memory.h"
 
@@ -25,7 +24,7 @@ class Joypad {
     uint8_t compute_low_nibble() const; // active-low lines
     uint8_t compose_joyp() const;       // full FF00 value
 
-    Memory &memory;
+    Memory &memory_;
     Keys keys_{};
 
     // Keep only select bits writable (P14/P15), active-low
@@ -35,5 +34,3 @@ class Joypad {
     // For interrupt edge detection (1->0 on selected lines)
     uint8_t prev_low_nibble_ = 0x0F;
 };
-
-#endif
