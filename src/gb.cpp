@@ -55,13 +55,20 @@ CartridgeInfo GB::read_cartridge_header() {
     static const std::array<int, 6> ram_kbs = {0, 2, 8, 32, 128, 64};
     int ram_kb = (ram_size_code < ram_kbs.size()) ? ram_kbs[ram_size_code] : 0;
 
+    if (rom_size_code > 0x08) {
+        std::stringstream ss;
+        ss << "Unsupported ROM size code: 0x" << std::uppercase << std::hex << std::setw(2) << std::setfill('0')
+           << static_cast<int>(rom_size_code);
+        throw std::runtime_error(ss.str());
+    }
+
     CartridgeInfo cartridge_info = {.title = title,
                                     .entry_point = entry_point,
                                     .logo = logo,
                                     .licensee = licensee,
                                     .supports_sgb = (sgb_flag == 0x03),
-                                    .rom_size_kb = (rom_size_code <= 8) ? 32 * (1 << rom_size_code) : 0,
-                                    .num_rom_banks = (rom_size_code <= 8) ? (1 << rom_size_code) : 0,
+                                    .rom_size_kb = 32 * (1 << rom_size_code),
+                                    .num_rom_banks = 2 * (1 << rom_size_code),
                                     .ram_size_kb = ram_kb,
                                     .cartridge_type = this->cartridge_types.at(cartridge_type),
                                     .destination = destination,
