@@ -292,8 +292,7 @@ uint8_t PPU::read_tile_pixel(uint8_t tile_index, uint8_t row, uint8_t col, bool 
 uint8_t PPU::apply_palette(uint8_t palette_reg, uint8_t color_id) const {
     const uint8_t shift = static_cast<uint8_t>(color_id * 2);
     const uint8_t shade = static_cast<uint8_t>((palette_reg >> shift) & 0x03);
-    // Convert DMG shade (0=white..3=black) to Screen color index (0=black..3=white).
-    return static_cast<uint8_t>(3 - shade);
+    return shade;
 }
 
 void PPU::begin_dma(uint8_t source_high) {

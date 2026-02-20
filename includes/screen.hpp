@@ -23,5 +23,5 @@ class Screen {
     SDL_Renderer *renderer_ = nullptr;
     SDL_Texture *texture_ = nullptr;
 
-    uint32_t palette_[4] = {0xFF000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF};
+    uint32_t palette_[4] = {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000};
 };
