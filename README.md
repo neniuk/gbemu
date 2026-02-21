@@ -2,7 +2,7 @@
 Simple emulator for the original GB.
 
 ## Compatibility
-Supports for now only DMG ROMs with ROM sizes <= 32KiB, and no RAM. Does not support SGB or CGB ROMs.
+Supports for now only DMG ROMs of cartridge type "ROM Only".
 
 ## Prerequisites
 - cmake >= 3.28.0
