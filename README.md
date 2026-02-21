@@ -7,7 +7,7 @@ Supports for now only DMG ROMs of cartridge type "ROM Only".
 ## Prerequisites
 - cmake >= 3.28.0
 - ninja
-- g++/MSVC/clang
+- g++/MSVC/clang++
 - vcpkg ($VCPKG_ROOT set)
 
 ## Building
