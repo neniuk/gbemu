@@ -4,6 +4,12 @@ Simple emulator for the original GB.
 ## Compatibility
 Supports for now only DMG ROMs with ROM sizes <= 32KiB, and no RAM. Does not support SGB or CGB ROMs.
 
+## Prerequisites
+- cmake >= 3.28.0
+- ninja
+- g++/MSVC/clang
+- vcpkg ($VCPKG_ROOT set)
+
 ## Building
 ```bash
     # Debug
